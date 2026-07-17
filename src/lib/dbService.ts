@@ -226,7 +226,8 @@ export async function getProducts(): Promise<Product[]> {
         list.push({ id: docSnap.id, ...docSnap.data() } as Product);
       });
       if (list.length === 0 && localStorage.getItem("nytka_db_initialized") !== "true") {
-        // If Firebase is connected but empty, return seed products so it's not blank
+        // If Firebase is connected but empty, seed the initial products into Firestore
+        await seedFirebaseWithInitialData();
         return INITIAL_PRODUCTS;
       }
       return list;
