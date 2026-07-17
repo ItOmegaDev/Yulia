@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Product, CartItem } from "./types";
+import { Product, CartItem, SiteSettings } from "./types";
 import ProductCard from "./components/ProductCard";
 import ProductDetailsModal from "./components/ProductDetailsModal";
 import CartDrawer from "./components/CartDrawer";
@@ -29,6 +29,7 @@ export default function App() {
   const [loading, setLoading] = useState<boolean>(true);
   const [categoryFilter, setCategoryFilter] = useState<string>("всі");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [settings, setSettings] = useState<SiteSettings | null>(null);
 
   // Admin authorization state
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
@@ -43,13 +44,15 @@ export default function App() {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
   const [successOrder, setSuccessOrder] = useState<any>(null);
 
-  // Fetch products from dbService on load
+  // Fetch products and settings from dbService on load
   const loadProducts = async () => {
     try {
       const data = await dbService.getProducts();
       setProducts(data);
+      const siteSettings = await dbService.getSettings();
+      setSettings(siteSettings);
     } catch (err) {
-      console.error("Error fetching products:", err);
+      console.error("Error fetching data:", err);
     } finally {
       setLoading(false);
     }
@@ -263,7 +266,7 @@ export default function App() {
       {/* 1. ANNOUNCEMENT BAR */}
       <div className="bg-amber-900 text-amber-50 text-[11px] font-bold py-2 px-4 text-center tracking-widest uppercase flex items-center justify-center gap-2">
         <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
-        Безкоштовне коригування лекал під ваші індивідуальні мірки для кожного замовлення
+        {settings?.announcement || "Безкоштовне коригування лекал під ваші індивідуальні мірки для кожного замовлення"}
       </div>
 
       {/* 2. NAVIGATION HEADER */}
@@ -345,11 +348,11 @@ export default function App() {
           </span>
           
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight leading-tight">
-            Одяг та Текстиль за Вашими Індивідуальними Мірками
+            {settings?.heroTitle || "Одяг та Текстиль за Вашими Індивідуальними Мірками"}
           </h2>
           
           <p className="text-stone-300 text-xs sm:text-sm leading-relaxed max-w-lg mx-auto font-light">
-            Ми не віримо в стандартизовану індустрію. Кожен шов, кожен сантиметр тканини створюється швачкою вручну, адаптуючи крій під особливості вашої фігури.
+            {settings?.heroDescription || "Ми не віримо в стандартизовану індустрію. Кожен шов, кожен сантиметр тканини створюється швачкою вручну, адаптуючи крій під особливості вашої фігури."}
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-6 pt-3 text-stone-400 text-xs">
@@ -452,9 +455,9 @@ export default function App() {
             <div className="bg-amber-800/50 w-10 h-10 rounded-xl flex items-center justify-center text-amber-400 border border-amber-700/30">
               <Scissors className="w-5 h-5" />
             </div>
-            <h4 className="font-bold text-base">Індивідуальне коригування лекал</h4>
+            <h4 className="font-bold text-base">{settings?.benefit1Title || "Індивідуальне коригування лекал"}</h4>
             <p className="text-stone-400 text-xs leading-relaxed">
-              Не хвилюйтеся про стандартні розмірні сітки. Наші кравці безкоштовно перерахують лекала виробу під ваш зріст та пропорції для ідеальної посадки.
+              {settings?.benefit1Desc || "Не хвилюйтеся про стандартні розмірні сітки. Наші кравці безкоштовно перерахують лекала виробу під ваш зріст та пропорції для ідеальної посадки."}
             </p>
           </div>
 
@@ -462,9 +465,9 @@ export default function App() {
             <div className="bg-amber-800/50 w-10 h-10 rounded-xl flex items-center justify-center text-amber-400 border border-amber-700/30">
               <Sparkles className="w-5 h-5" />
             </div>
-            <h4 className="font-bold text-base">Екологічність та якість льону</h4>
+            <h4 className="font-bold text-base">{settings?.benefit2Title || "Екологічність та якість льону"}</h4>
             <p className="text-stone-400 text-xs leading-relaxed">
-              Ми використовуємо лише преміальний сертифікований льон та органічну бавовну. Тканини проходять процедуру пом'якшення, не сідають при пранні.
+              {settings?.benefit2Desc || "Ми використовуємо лише преміальний сертифікований льон та органічну бавовну. Тканини проходять процедуру пом'якшення, не сідають при пранні."}
             </p>
           </div>
 
@@ -472,9 +475,9 @@ export default function App() {
             <div className="bg-amber-800/50 w-10 h-10 rounded-xl flex items-center justify-center text-amber-400 border border-amber-700/30">
               <PhoneCall className="w-5 h-5" />
             </div>
-            <h4 className="font-bold text-base">Супровід кравчині</h4>
+            <h4 className="font-bold text-base">{settings?.benefit3Title || "Супровід кравчині"}</h4>
             <p className="text-stone-400 text-xs leading-relaxed">
-              Після оформлення замовлення наш майстер-швець особисто контролює етапи підготовки та зв'яжеться з вами за потреби для підтвердження обхватів.
+              {settings?.benefit3Desc || "Після оформлення замовлення наш майстер-швець особисто контролює етапи підготовки та зв'яжеться з вами за потреби для підтвердження обхватів."}
             </p>
           </div>
         </div>
@@ -487,11 +490,18 @@ export default function App() {
           <span className="font-bold uppercase tracking-wider text-[11px]">Оксамит • Майстерня ручної роботи</span>
         </div>
         <p className="max-w-md mx-auto text-stone-500">
-          Україна, м. Київ • Екологічний пошив одягу та предметів побуту за вашими власними мірками.
+          {settings?.footerText || "Україна, м. Київ • Екологічний пошив одягу та предметів побуту за вашими власними мірками."}
         </p>
-        <p className="text-stone-600 text-[10px]">
-          © {new Date().getFullYear()} Оксамит. Усі права захищені. Симулятор оплати LiqPay Sandbox.
-        </p>
+        <div className="flex flex-col sm:flex-row justify-center items-center gap-2 sm:gap-4 text-stone-600 text-[10px]">
+          <span>© {new Date().getFullYear()} Оксамит. Усі права захищені. Симулятор оплати LiqPay Sandbox.</span>
+          <span className="hidden sm:inline">•</span>
+          <button
+            onClick={() => toggleView("admin")}
+            className="text-stone-500 hover:text-amber-500 transition-colors cursor-pointer underline"
+          >
+            Вхід для майстра
+          </button>
+        </div>
       </footer>
 
       {/* 9. MODALS & DRAWERS RENDER */}

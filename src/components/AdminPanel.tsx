@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Order, Product } from "../types";
+import { Order, Product, SiteSettings } from "../types";
 import {
   TrendingUp,
   ShoppingBag,
@@ -30,7 +30,7 @@ interface AdminPanelProps {
 export default function AdminPanel({ onBackToStore }: AdminPanelProps) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [activeTab, setActiveTab] = useState<"dashboard" | "orders" | "catalog" | "firebase">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "orders" | "catalog" | "firebase" | "settings">("dashboard");
   const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("Всі");
@@ -50,6 +50,23 @@ export default function AdminPanel({ onBackToStore }: AdminPanelProps) {
   });
   const [saveSuccess, setSaveSuccess] = useState<string>("");
   const [seedSuccess, setSeedSuccess] = useState<string>("");
+
+  // Site settings state
+  const [settings, setSettings] = useState<SiteSettings | null>(null);
+  const [settingsForm, setSettingsForm] = useState<SiteSettings>({
+    announcement: "",
+    heroTitle: "",
+    heroDescription: "",
+    benefit1Title: "",
+    benefit1Desc: "",
+    benefit2Title: "",
+    benefit2Desc: "",
+    benefit3Title: "",
+    benefit3Desc: "",
+    footerText: "",
+  });
+  const [settingsSaveSuccess, setSettingsSaveSuccess] = useState<string>("");
+  const [settingsSaveError, setSettingsSaveError] = useState<string>("");
 
   // Product form states
   const [isProductModalOpen, setIsProductModalOpen] = useState<boolean>(false);
@@ -76,10 +93,29 @@ export default function AdminPanel({ onBackToStore }: AdminPanelProps) {
 
       const productsData = await dbService.getProducts();
       setProducts(productsData);
+
+      const settingsData = await dbService.getSettings();
+      setSettings(settingsData);
+      setSettingsForm(settingsData);
     } catch (err) {
       console.error("Error fetching admin data:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSettingsSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSettingsSaveSuccess("");
+    setSettingsSaveError("");
+    try {
+      const saved = await dbService.saveSettings(settingsForm);
+      setSettings(saved);
+      setSettingsSaveSuccess("✓ Налаштування сайту успішно збережено!");
+      setTimeout(() => setSettingsSaveSuccess(""), 5000);
+    } catch (err: any) {
+      console.error("Error saving site settings:", err);
+      setSettingsSaveError("⚠ Помилка при збереженні налаштувань. Спробуйте ще раз.");
     }
   };
 
@@ -223,16 +259,22 @@ export default function AdminPanel({ onBackToStore }: AdminPanelProps) {
       "Продажі (₴)": sales,
     }));
 
-    // Fallback if empty to show something elegant
+    // Fallback if empty to show clean actual zeros
     if (chartData.length === 0) {
-      return [
-        { date: "12 Лип", "Продажі (₴)": 0 },
-        { date: "13 Лип", "Продажі (₴)": 4500 },
-        { date: "14 Лип", "Продажі (₴)": 3200 },
-        { date: "15 Лип", "Продажі (₴)": 2450 },
-        { date: "16 Лип", "Продажі (₴)": 1300 },
-        { date: "17 Лип", "Продажі (₴)": totalSales || 8500 },
-      ];
+      const result = [];
+      for (let i = 4; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dateStr = d.toLocaleDateString("uk-UA", {
+          day: "numeric",
+          month: "short",
+        });
+        result.push({
+          date: dateStr,
+          "Продажі (₴)": 0,
+        });
+      }
+      return result;
     }
     return chartData;
   };
@@ -322,6 +364,17 @@ export default function AdminPanel({ onBackToStore }: AdminPanelProps) {
         >
           <span className={`w-2 h-2 rounded-full ${firebaseConnected ? "bg-emerald-500" : "bg-red-500"}`}></span>
           Хмара Firebase (Сервер)
+        </button>
+        <button
+          onClick={() => setActiveTab("settings")}
+          className={`px-5 py-2.5 rounded-none text-xs uppercase tracking-widest font-semibold transition-colors cursor-pointer shrink-0 flex items-center gap-1.5 ${
+            activeTab === "settings"
+              ? "bg-editorial-dark text-white border border-editorial-dark"
+              : "text-editorial-muted hover:text-editorial-text border border-transparent hover:border-editorial-border/40"
+          }`}
+        >
+          <Edit3 className="w-4 h-4" />
+          Редагування сайту
         </button>
       </div>
 
@@ -851,6 +904,178 @@ export default function AdminPanel({ onBackToStore }: AdminPanelProps) {
                     <li>Скопіюйте згенерований об'єкт <code className="bg-stone-100 px-1 py-0.5">firebaseConfig</code> та вставте його поля вище!</li>
                   </ol>
                 </div>
+              </div>
+            )}
+
+            {/* 5. SITE SETTINGS VIEW */}
+            {activeTab === "settings" && settingsForm && (
+              <div className="bg-white border border-editorial-border p-8 space-y-6 text-xs animate-fade-in">
+                <div>
+                  <h3 className="font-serif text-editorial-text text-lg font-normal mb-1">Редагування вмісту сайту</h3>
+                  <p className="text-xs text-editorial-muted">Тут ви можете змінити абсолютно весь текст та заголовки на вашому головному сайті. Зміни зберігаються в реальному часі у підключену базу даних Firebase або локально.</p>
+                </div>
+
+                {settingsSaveSuccess && (
+                  <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium rounded-none">
+                    {settingsSaveSuccess}
+                  </div>
+                )}
+
+                {settingsSaveError && (
+                  <div className="p-4 bg-red-50 border border-red-200 text-red-800 text-xs font-medium rounded-none">
+                    {settingsSaveError}
+                  </div>
+                )}
+
+                <form onSubmit={handleSettingsSubmit} className="space-y-6">
+                  {/* Announcement banner text */}
+                  <div className="border-b border-stone-100 pb-5 space-y-3">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-amber-800 font-sans">Верхній банер оголошень</h4>
+                    <div>
+                      <label className="text-[10px] uppercase tracking-wider font-bold text-editorial-muted block mb-1">Текст банера</label>
+                      <input
+                        type="text"
+                        value={settingsForm.announcement}
+                        onChange={(e) => setSettingsForm({ ...settingsForm, announcement: e.target.value })}
+                        className="w-full bg-stone-50 border border-editorial-border rounded-none px-3.5 py-2.5 text-xs outline-none transition-all focus:border-editorial-dark focus:bg-white"
+                        placeholder="Безкоштовне коригування лекал під ваші індивідуальні мірки для кожного замовлення"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Hero banner text */}
+                  <div className="border-b border-stone-100 pb-5 space-y-4">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-amber-800 font-sans">Головний екран (Hero Section)</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-[10px] uppercase tracking-wider font-bold text-editorial-muted block mb-1">Головний заголовок</label>
+                        <input
+                          type="text"
+                          value={settingsForm.heroTitle}
+                          onChange={(e) => setSettingsForm({ ...settingsForm, heroTitle: e.target.value })}
+                          className="w-full bg-stone-50 border border-editorial-border rounded-none px-3.5 py-2.5 text-xs outline-none transition-all focus:border-editorial-dark focus:bg-white"
+                          placeholder="Одяг та Текстиль за Вашими Індивідуальними Мірками"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] uppercase tracking-wider font-bold text-editorial-muted block mb-1">Опис під заголовком</label>
+                        <textarea
+                          rows={3}
+                          value={settingsForm.heroDescription}
+                          onChange={(e) => setSettingsForm({ ...settingsForm, heroDescription: e.target.value })}
+                          className="w-full bg-stone-50 border border-editorial-border rounded-none px-3.5 py-2.5 text-xs outline-none transition-all focus:border-editorial-dark focus:bg-white"
+                          placeholder="Ми не віримо в стандартизовану індустрію. Кожен шов, кожен сантиметр тканини створюється швачкою вручну..."
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Benefit items text */}
+                  <div className="border-b border-stone-100 pb-5 space-y-4">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-amber-800 font-sans">Наші переваги (Блок Чому ми)</h4>
+                    
+                    <div className="space-y-4">
+                      {/* Benefit 1 */}
+                      <div className="p-4 bg-stone-50/50 border border-stone-100 space-y-3">
+                        <span className="text-[10px] uppercase tracking-wider font-bold text-editorial-muted">Перевага 1</span>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="md:col-span-1">
+                            <label className="text-[10px] uppercase tracking-wider font-bold text-editorial-muted block mb-1">Заголовок</label>
+                            <input
+                              type="text"
+                              value={settingsForm.benefit1Title}
+                              onChange={(e) => setSettingsForm({ ...settingsForm, benefit1Title: e.target.value })}
+                              className="w-full bg-white border border-editorial-border rounded-none px-3.5 py-2 text-xs outline-none transition-all focus:border-editorial-dark"
+                            />
+                          </div>
+                          <div className="md:col-span-2">
+                            <label className="text-[10px] uppercase tracking-wider font-bold text-editorial-muted block mb-1">Опис переваги</label>
+                            <input
+                              type="text"
+                              value={settingsForm.benefit1Desc}
+                              onChange={(e) => setSettingsForm({ ...settingsForm, benefit1Desc: e.target.value })}
+                              className="w-full bg-white border border-editorial-border rounded-none px-3.5 py-2 text-xs outline-none transition-all focus:border-editorial-dark"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Benefit 2 */}
+                      <div className="p-4 bg-stone-50/50 border border-stone-100 space-y-3">
+                        <span className="text-[10px] uppercase tracking-wider font-bold text-editorial-muted">Перевага 2</span>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="md:col-span-1">
+                            <label className="text-[10px] uppercase tracking-wider font-bold text-editorial-muted block mb-1">Заголовок</label>
+                            <input
+                              type="text"
+                              value={settingsForm.benefit2Title}
+                              onChange={(e) => setSettingsForm({ ...settingsForm, benefit2Title: e.target.value })}
+                              className="w-full bg-white border border-editorial-border rounded-none px-3.5 py-2 text-xs outline-none transition-all focus:border-editorial-dark"
+                            />
+                          </div>
+                          <div className="md:col-span-2">
+                            <label className="text-[10px] uppercase tracking-wider font-bold text-editorial-muted block mb-1">Опис переваги</label>
+                            <input
+                              type="text"
+                              value={settingsForm.benefit2Desc}
+                              onChange={(e) => setSettingsForm({ ...settingsForm, benefit2Desc: e.target.value })}
+                              className="w-full bg-white border border-editorial-border rounded-none px-3.5 py-2 text-xs outline-none transition-all focus:border-editorial-dark"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Benefit 3 */}
+                      <div className="p-4 bg-stone-50/50 border border-stone-100 space-y-3">
+                        <span className="text-[10px] uppercase tracking-wider font-bold text-editorial-muted">Перевага 3</span>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="md:col-span-1">
+                            <label className="text-[10px] uppercase tracking-wider font-bold text-editorial-muted block mb-1">Заголовок</label>
+                            <input
+                              type="text"
+                              value={settingsForm.benefit3Title}
+                              onChange={(e) => setSettingsForm({ ...settingsForm, benefit3Title: e.target.value })}
+                              className="w-full bg-white border border-editorial-border rounded-none px-3.5 py-2 text-xs outline-none transition-all focus:border-editorial-dark"
+                            />
+                          </div>
+                          <div className="md:col-span-2">
+                            <label className="text-[10px] uppercase tracking-wider font-bold text-editorial-muted block mb-1">Опис переваги</label>
+                            <input
+                              type="text"
+                              value={settingsForm.benefit3Desc}
+                              onChange={(e) => setSettingsForm({ ...settingsForm, benefit3Desc: e.target.value })}
+                              className="w-full bg-white border border-editorial-border rounded-none px-3.5 py-2 text-xs outline-none transition-all focus:border-editorial-dark"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Footer section text */}
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-amber-800 font-sans">Низ сайту (Footer)</h4>
+                    <div>
+                      <label className="text-[10px] uppercase tracking-wider font-bold text-editorial-muted block mb-1">Адреса та опис у футері</label>
+                      <input
+                        type="text"
+                        value={settingsForm.footerText}
+                        onChange={(e) => setSettingsForm({ ...settingsForm, footerText: e.target.value })}
+                        className="w-full bg-stone-50 border border-editorial-border rounded-none px-3.5 py-2.5 text-xs outline-none transition-all focus:border-editorial-dark focus:bg-white"
+                        placeholder="Україна, м. Київ • Екологічний пошив одягу та предметів побуту за вашими власними мірками."
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-4 flex justify-end">
+                    <button
+                      type="submit"
+                      className="px-6 py-3 bg-editorial-dark hover:bg-stone-800 text-white text-xs uppercase tracking-wider font-bold cursor-pointer transition-colors"
+                    >
+                      Зберегти зміни вмісту сайту
+                    </button>
+                  </div>
+                </form>
               </div>
             )}
           </>

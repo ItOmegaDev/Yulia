@@ -4,6 +4,7 @@ import {
   collection,
   doc,
   getDocs,
+  getDoc,
   addDoc,
   setDoc,
   updateDoc,
@@ -12,7 +13,7 @@ import {
   orderBy,
   Firestore,
 } from "firebase/firestore";
-import { Product, Order } from "../types";
+import { Product, Order, SiteSettings } from "../types";
 
 export interface FirebaseConfig {
   apiKey: string;
@@ -110,73 +111,7 @@ const INITIAL_PRODUCTS: Product[] = [
   },
 ];
 
-const INITIAL_ORDERS: Order[] = [
-  {
-    id: "ord_1",
-    orderNumber: "SH-1024",
-    date: "2026-07-15T14:32:00.000Z",
-    customer: {
-      name: "Марія Ковальчук",
-      email: "maria.koval@gmail.com",
-      phone: "+380671234567",
-      address: "м. Київ, Нова Пошта №45",
-    },
-    items: [
-      {
-        id: "prod_1",
-        name: "Лляна сукня «Дика ружа»",
-        price: 2450,
-        quantity: 1,
-        selectedSize: "M",
-        measurements: {
-          height: "168",
-          chest: "92",
-          waist: "74",
-          hips: "100",
-        },
-      },
-    ],
-    total: 2450,
-    status: "В роботі",
-    paymentStatus: "Оплачено",
-    paymentDetails: {
-      provider: "LiqPay (Simulated)",
-      transactionId: "trn_7721839a",
-      timestamp: "2026-07-15T14:35:12.000Z",
-    },
-    notes: "Будь ласка, зробіть довжину сукні на 5 см довшою за стандартну.",
-  },
-  {
-    id: "ord_2",
-    orderNumber: "SH-1025",
-    date: "2026-07-16T09:15:00.000Z",
-    customer: {
-      name: "Олександр Дмитрук",
-      email: "o.dmytruk@ukr.net",
-      phone: "+380509876543",
-      address: "м. Львів, вул. Шевченка 12, кв. 4",
-    },
-    items: [
-      {
-        id: "prod_4",
-        name: "Еко-сумка шопер з вишитим колоском",
-        price: 650,
-        quantity: 2,
-        selectedSize: "Універсальний",
-        measurements: null,
-      },
-    ],
-    total: 1300,
-    status: "Новий",
-    paymentStatus: "Оплачено",
-    paymentDetails: {
-      provider: "LiqPay (Simulated)",
-      transactionId: "trn_8819203b",
-      timestamp: "2026-07-16T09:17:45.000Z",
-    },
-    notes: "Один шопер упакуйте, будь ласка, як подарунок.",
-  },
-];
+const INITIAL_ORDERS: Order[] = [];
 
 // Helper to check environment or stored config
 export function getStoredFirebaseConfig(): FirebaseConfig | null {
@@ -290,7 +225,7 @@ export async function getProducts(): Promise<Product[]> {
       querySnapshot.forEach((docSnap) => {
         list.push({ id: docSnap.id, ...docSnap.data() } as Product);
       });
-      if (list.length === 0) {
+      if (list.length === 0 && localStorage.getItem("nytka_db_initialized") !== "true") {
         // If Firebase is connected but empty, return seed products so it's not blank
         return INITIAL_PRODUCTS;
       }
@@ -303,6 +238,7 @@ export async function getProducts(): Promise<Product[]> {
 }
 
 export async function createProduct(prodData: Omit<Product, "id">): Promise<Product> {
+  localStorage.setItem("nytka_db_initialized", "true");
   const newId = "prod_" + Date.now();
   const newProd: Product = {
     id: newId,
@@ -340,6 +276,7 @@ export async function createProduct(prodData: Omit<Product, "id">): Promise<Prod
 }
 
 export async function updateProduct(id: string, prodData: Partial<Product>): Promise<Product> {
+  localStorage.setItem("nytka_db_initialized", "true");
   if (firestoreDb) {
     try {
       const docRef = doc(firestoreDb, "products", id);
@@ -373,6 +310,7 @@ export async function updateProduct(id: string, prodData: Partial<Product>): Pro
 }
 
 export async function deleteProduct(id: string): Promise<boolean> {
+  localStorage.setItem("nytka_db_initialized", "true");
   if (firestoreDb) {
     try {
       await deleteDoc(doc(firestoreDb, "products", id));
@@ -474,6 +412,7 @@ export async function updateOrder(id: string, orderData: Partial<Order>): Promis
 
 // Mass-seed initial items to Firebase
 export async function seedFirebaseWithInitialData(): Promise<boolean> {
+  localStorage.setItem("nytka_db_initialized", "true");
   if (!firestoreDb) return false;
   try {
     // 1. Upload initial products
@@ -503,4 +442,51 @@ export async function seedFirebaseWithInitialData(): Promise<boolean> {
     console.error("Failed to seed Firebase data:", err);
     return false;
   }
+}
+
+export const DEFAULT_SETTINGS: SiteSettings = {
+  announcement: "Безкоштовне коригування лекал під ваші індивідуальні мірки для кожного замовлення",
+  heroTitle: "Одяг та Текстиль за Вашими Індивідуальними Мірками",
+  heroDescription: "Ми не віримо в стандартизовану індустрію. Кожен шов, кожен сантиметр тканини створюється швачкою вручну, адаптуючи крій під особливості вашої фігури.",
+  benefit1Title: "Індивідуальне коригування лекал",
+  benefit1Desc: "Не хвилюйтеся про стандартні розмірні сітки. Наші кравці безкоштовно перерахують лекала виробу під ваш зріст та пропорції для ідеальної посадки.",
+  benefit2Title: "Екологічність та якість льону",
+  benefit2Desc: "Ми використовуємо лише преміальний сертифікований льон та органічну бавовну. Тканини проходять процедуру пом'якшення, не сідають при пранні.",
+  benefit3Title: "Супровід кравчині",
+  benefit3Desc: "Після оформлення замовлення наш майстер-швець особисто контролює етапи підготовки та зв'яжеться з вами за потреби для підтвердження обхватів.",
+  footerText: "Україна, м. Київ • Екологічний пошив одягу та предметів побуту за вашими власними мірками.",
+};
+
+export async function getSettings(): Promise<SiteSettings> {
+  if (firestoreDb) {
+    try {
+      const docSnap = await getDoc(doc(firestoreDb, "settings", "site"));
+      if (docSnap.exists()) {
+        return docSnap.data() as SiteSettings;
+      }
+    } catch (err) {
+      console.error("Firestore getSettings error:", err);
+    }
+  }
+  const saved = localStorage.getItem("nytka_site_settings");
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch {
+      // ignore
+    }
+  }
+  return DEFAULT_SETTINGS;
+}
+
+export async function saveSettings(settings: SiteSettings): Promise<SiteSettings> {
+  if (firestoreDb) {
+    try {
+      await setDoc(doc(firestoreDb, "settings", "site"), settings);
+    } catch (err) {
+      console.error("Firestore saveSettings error:", err);
+    }
+  }
+  localStorage.setItem("nytka_site_settings", JSON.stringify(settings));
+  return settings;
 }

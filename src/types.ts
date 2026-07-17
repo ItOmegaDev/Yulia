@@ -60,3 +60,17 @@ export interface Order {
   paymentDetails?: PaymentDetails;
   notes?: string;
 }
+
+export interface SiteSettings {
+  announcement: string;
+  heroTitle: string;
+  heroDescription: string;
+  benefit1Title: string;
+  benefit1Desc: string;
+  benefit2Title: string;
+  benefit2Desc: string;
+  benefit3Title: string;
+  benefit3Desc: string;
+  footerText: string;
+}
+
