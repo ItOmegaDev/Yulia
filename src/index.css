@@ -1,0 +1,41 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-serif: "Playfair Display", ui-serif, Georgia, Cambria, serif;
+  
+  --color-editorial-bg: #F9F7F2;
+  --color-editorial-text: #1A1A1A;
+  --color-editorial-border: #D4CFC7;
+  --color-editorial-muted: #8C867E;
+  --color-editorial-dark: #2A2420;
+  --color-editorial-cream: #EFECE7;
+  --color-editorial-dark-muted: #4A453F;
+}
+
+@layer utilities {
+  .font-serif {
+    font-family: var(--font-serif);
+  }
+}
+
+/* Custom animation styles */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
