@@ -21,6 +21,7 @@ import {
   Lock,
 } from "lucide-react";
 import CustomSalesChart from "./CustomSalesChart";
+import * as dbService from "../lib/dbService";
 
 interface AdminPanelProps {
   onBackToStore: () => void;
@@ -29,10 +30,26 @@ interface AdminPanelProps {
 export default function AdminPanel({ onBackToStore }: AdminPanelProps) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [activeTab, setActiveTab] = useState<"dashboard" | "orders" | "catalog">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "orders" | "catalog" | "firebase">("dashboard");
   const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("Всі");
+
+  // Firebase integration states
+  const [firebaseConnected, setFirebaseConnected] = useState<boolean>(dbService.isFirebaseConnected());
+  const [fbConfig, setFbConfig] = useState<dbService.FirebaseConfig>(() => {
+    const saved = dbService.getStoredFirebaseConfig();
+    return saved || {
+      apiKey: "",
+      authDomain: "",
+      projectId: "",
+      storageBucket: "",
+      messagingSenderId: "",
+      appId: "",
+    };
+  });
+  const [saveSuccess, setSaveSuccess] = useState<string>("");
+  const [seedSuccess, setSeedSuccess] = useState<string>("");
 
   // Product form states
   const [isProductModalOpen, setIsProductModalOpen] = useState<boolean>(false);
@@ -54,12 +71,10 @@ export default function AdminPanel({ onBackToStore }: AdminPanelProps) {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const ordersRes = await fetch("/api/orders");
-      const ordersData = await ordersRes.json();
+      const ordersData = await dbService.getOrders();
       setOrders(ordersData);
 
-      const productsRes = await fetch("/api/products");
-      const productsData = await productsRes.json();
+      const productsData = await dbService.getProducts();
       setProducts(productsData);
     } catch (err) {
       console.error("Error fetching admin data:", err);
@@ -75,15 +90,8 @@ export default function AdminPanel({ onBackToStore }: AdminPanelProps) {
   // Update order status
   const handleUpdateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
-      const response = await fetch(`/api/orders/${orderId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      if (response.ok) {
-        const updated = await response.json();
-        setOrders((prev) => prev.map((o) => (o.id === orderId ? updated : o)));
-      }
+      const updated = await dbService.updateOrder(orderId, { status: newStatus });
+      setOrders((prev) => prev.map((o) => (o.id === orderId ? updated : o)));
     } catch (err) {
       console.error("Error updating status:", err);
     }
@@ -92,15 +100,8 @@ export default function AdminPanel({ onBackToStore }: AdminPanelProps) {
   // Toggle order payment status
   const handleUpdateOrderPayment = async (orderId: string, newPaymentStatus: string) => {
     try {
-      const response = await fetch(`/api/orders/${orderId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ paymentStatus: newPaymentStatus }),
-      });
-      if (response.ok) {
-        const updated = await response.json();
-        setOrders((prev) => prev.map((o) => (o.id === orderId ? updated : o)));
-      }
+      const updated = await dbService.updateOrder(orderId, { paymentStatus: newPaymentStatus });
+      setOrders((prev) => prev.map((o) => (o.id === orderId ? updated : o)));
     } catch (err) {
       console.error("Error updating payment status:", err);
     }
@@ -110,10 +111,8 @@ export default function AdminPanel({ onBackToStore }: AdminPanelProps) {
   const handleDeleteProduct = async (prodId: string) => {
     if (!window.confirm("Ви впевнені, що хочете видалити цей виріб з каталогу?")) return;
     try {
-      const response = await fetch(`/api/products/${prodId}`, {
-        method: "DELETE",
-      });
-      if (response.ok) {
+      const success = await dbService.deleteProduct(prodId);
+      if (success) {
         setProducts((prev) => prev.filter((p) => p.id !== prodId));
       }
     } catch (err) {
@@ -167,7 +166,7 @@ export default function AdminPanel({ onBackToStore }: AdminPanelProps) {
       return;
     }
 
-    const payload = {
+    const payload: Omit<Product, "id"> = {
       name: productForm.name,
       description: productForm.description,
       price: priceNum,
@@ -176,33 +175,20 @@ export default function AdminPanel({ onBackToStore }: AdminPanelProps) {
       materials: productForm.materials,
       craftTime: productForm.craftTime,
       sizes: productForm.sizes.split(",").map((s) => s.trim()).filter(Boolean),
+      featured: editingProduct ? (editingProduct.featured ?? false) : false,
+      rating: editingProduct ? (editingProduct.rating ?? 5.0) : 5.0,
+      reviews: editingProduct ? (editingProduct.reviews ?? 0) : 0,
     };
 
     try {
       if (editingProduct) {
-        // Edit API
-        const response = await fetch(`/api/products/${editingProduct.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        if (response.ok) {
-          const updated = await response.json();
-          setProducts((prev) => prev.map((p) => (p.id === editingProduct.id ? updated : p)));
-          setIsProductModalOpen(false);
-        }
+        const updated = await dbService.updateProduct(editingProduct.id, payload);
+        setProducts((prev) => prev.map((p) => (p.id === editingProduct.id ? updated : p)));
+        setIsProductModalOpen(false);
       } else {
-        // Create API
-        const response = await fetch("/api/products", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        if (response.ok) {
-          const created = await response.json();
-          setProducts((prev) => [...prev, created]);
-          setIsProductModalOpen(false);
-        }
+        const created = await dbService.createProduct(payload);
+        setProducts((prev) => [...prev, created]);
+        setIsProductModalOpen(false);
       }
     } catch (err) {
       setFormError("Помилка збереження даних на сервері.");
@@ -325,6 +311,17 @@ export default function AdminPanel({ onBackToStore }: AdminPanelProps) {
           }`}
         >
           Каталог товарів ({products.length})
+        </button>
+        <button
+          onClick={() => setActiveTab("firebase")}
+          className={`px-5 py-2.5 rounded-none text-xs uppercase tracking-widest font-semibold transition-colors cursor-pointer shrink-0 flex items-center gap-1.5 ${
+            activeTab === "firebase"
+              ? "bg-amber-700 text-white border border-amber-700"
+              : "text-editorial-muted hover:text-editorial-text border border-transparent hover:border-amber-700/40"
+          }`}
+        >
+          <span className={`w-2 h-2 rounded-full ${firebaseConnected ? "bg-emerald-500" : "bg-red-500"}`}></span>
+          Хмара Firebase (Сервер)
         </button>
       </div>
 
@@ -676,6 +673,183 @@ export default function AdminPanel({ onBackToStore }: AdminPanelProps) {
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* 4. FIREBASE CONFIGURATION VIEW */}
+            {activeTab === "firebase" && (
+              <div className="bg-white border border-editorial-border p-8 space-y-6 text-xs">
+                <div>
+                  <h3 className="text-lg font-serif text-editorial-text mb-1">Інтеграція з хмарною базою даних Firebase</h3>
+                  <p className="text-xs text-editorial-muted leading-relaxed">
+                    Цей застосунок може працювати у двох режимах: автономно (локально у вашому браузері за допомогою <code className="bg-stone-100 px-1 py-0.5 font-mono text-[11px]">LocalStorage</code>) або синхронізуватися з віддаленою базою даних <code className="bg-stone-100 px-1 py-0.5 font-mono text-[11px]">Google Firebase Firestore</code>.
+                  </p>
+                  <p className="text-xs text-editorial-muted leading-relaxed mt-2">
+                    Якщо ви хочете запустити цей проєкт на <strong>GitHub Pages</strong>, підключіть Firebase нижче, щоб усі додані товари, замовлення та зміни синхронізувалися на сервері в режимі реального часу!
+                  </p>
+                </div>
+
+                <div className="p-4 border border-stone-200 bg-stone-50 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-3.5 h-3.5 rounded-full ${firebaseConnected ? "bg-emerald-500 animate-pulse" : "bg-stone-300"}`}></div>
+                    <div>
+                      <span className="text-xs font-bold uppercase tracking-wider block">Статус підключення:</span>
+                      <span className="text-xs text-stone-600">
+                        {firebaseConnected 
+                          ? "✓ Успішно підключено до вашого хмарного Firestore" 
+                          : "⚠ Локальний режим (LocalStorage). Firebase не налаштовано."}
+                      </span>
+                    </div>
+                  </div>
+                  {firebaseConnected && (
+                    <button
+                      onClick={() => {
+                        localStorage.removeItem("nytka_firebase_config");
+                        dbService.initializeFirebaseService();
+                        setFirebaseConnected(false);
+                        setSaveSuccess("Конфігурацію видалено. Повернуто локальний режим.");
+                        setTimeout(() => setSaveSuccess(""), 4000);
+                        fetchData();
+                      }}
+                      className="text-xs text-red-700 hover:underline cursor-pointer"
+                    >
+                      Вимкнути Firebase
+                    </button>
+                  )}
+                </div>
+
+                {saveSuccess && (
+                  <div className="p-3 bg-emerald-50 border border-emerald-100 text-emerald-800 text-xs font-sans">
+                    {saveSuccess}
+                  </div>
+                )}
+
+                {seedSuccess && (
+                  <div className="p-3 bg-amber-50 border border-amber-200 text-amber-800 text-xs font-sans">
+                    {seedSuccess}
+                  </div>
+                )}
+
+                <div className="border-t border-stone-100 pt-6">
+                  <h4 className="text-xs uppercase tracking-widest font-bold text-editorial-muted mb-4 font-sans">Введіть ваші дані Firebase Web App Config</h4>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-sans">
+                    <div>
+                      <label className="block text-[10px] uppercase font-bold text-stone-500 mb-1">API Key</label>
+                      <input
+                        type="password"
+                        value={fbConfig.apiKey}
+                        onChange={(e) => setFbConfig({ ...fbConfig, apiKey: e.target.value })}
+                        placeholder="AIzaSy..."
+                        className="w-full bg-white border border-stone-200 px-3 py-2 outline-none focus:border-editorial-dark font-mono text-xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] uppercase font-bold text-stone-500 mb-1">Project ID</label>
+                      <input
+                        type="text"
+                        value={fbConfig.projectId}
+                        onChange={(e) => setFbConfig({ ...fbConfig, projectId: e.target.value })}
+                        placeholder="my-shop-project"
+                        className="w-full bg-white border border-stone-200 px-3 py-2 outline-none focus:border-editorial-dark font-mono text-xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] uppercase font-bold text-stone-500 mb-1">Auth Domain (optional)</label>
+                      <input
+                        type="text"
+                        value={fbConfig.authDomain}
+                        onChange={(e) => setFbConfig({ ...fbConfig, authDomain: e.target.value })}
+                        placeholder="my-shop-project.firebaseapp.com"
+                        className="w-full bg-white border border-stone-200 px-3 py-2 outline-none focus:border-editorial-dark font-mono text-xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] uppercase font-bold text-stone-500 mb-1">Storage Bucket (optional)</label>
+                      <input
+                        type="text"
+                        value={fbConfig.storageBucket}
+                        onChange={(e) => setFbConfig({ ...fbConfig, storageBucket: e.target.value })}
+                        placeholder="my-shop-project.appspot.com"
+                        className="w-full bg-white border border-stone-200 px-3 py-2 outline-none focus:border-editorial-dark font-mono text-xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] uppercase font-bold text-stone-500 mb-1">Messaging Sender ID (optional)</label>
+                      <input
+                        type="text"
+                        value={fbConfig.messagingSenderId}
+                        onChange={(e) => setFbConfig({ ...fbConfig, messagingSenderId: e.target.value })}
+                        placeholder="123456789"
+                        className="w-full bg-white border border-stone-200 px-3 py-2 outline-none focus:border-editorial-dark font-mono text-xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] uppercase font-bold text-stone-500 mb-1">App ID</label>
+                      <input
+                        type="text"
+                        value={fbConfig.appId}
+                        onChange={(e) => setFbConfig({ ...fbConfig, appId: e.target.value })}
+                        placeholder="1:123456:web:abcd"
+                        className="w-full bg-white border border-stone-200 px-3 py-2 outline-none focus:border-editorial-dark font-mono text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-4 mt-6">
+                    <button
+                      onClick={() => {
+                        if (!fbConfig.apiKey || !fbConfig.projectId) {
+                          alert("Будь ласка, введіть принаймні API Key та Project ID.");
+                          return;
+                        }
+                        localStorage.setItem("nytka_firebase_config", JSON.stringify(fbConfig));
+                        const isOk = dbService.initializeFirebaseService();
+                        if (isOk) {
+                          setFirebaseConnected(true);
+                          setSaveSuccess("✓ Налаштування успішно збережено та активовано! З'єднання з Firebase встановлено.");
+                          fetchData();
+                        } else {
+                          setSaveSuccess("⚠ Помилка ініціалізації Firebase. Перевірте вказані дані.");
+                          setFirebaseConnected(false);
+                        }
+                        setTimeout(() => setSaveSuccess(""), 5000);
+                      }}
+                      className="px-6 py-3 bg-amber-700 hover:bg-amber-800 text-white text-xs uppercase tracking-wider font-bold cursor-pointer transition-colors"
+                    >
+                      Зберегти та підключити
+                    </button>
+
+                    {firebaseConnected && (
+                      <button
+                        onClick={async () => {
+                          setSeedSuccess("Надсилання початкових даних до Firestore...");
+                          const ok = await dbService.seedFirebaseWithInitialData();
+                          if (ok) {
+                            setSeedSuccess("✓ Початкові вироби та демо-замовлення успішно завантажені у ваш Firestore!");
+                            fetchData();
+                          } else {
+                            setSeedSuccess("⚠ Помилка завантаження даних. Перевірте консоль розробника або Firestore Security Rules.");
+                          }
+                          setTimeout(() => setSeedSuccess(""), 6000);
+                        }}
+                        className="px-6 py-3 bg-stone-900 hover:bg-stone-800 text-white text-xs uppercase tracking-wider font-bold cursor-pointer transition-colors"
+                      >
+                        Завантажити початкові товари у Firebase
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="border-t border-stone-100 pt-6 space-y-2">
+                  <h5 className="text-xs font-bold text-editorial-text">Як отримати ці налаштування безкоштовно за 3 хвилини:</h5>
+                  <ol className="list-decimal pl-5 text-xs text-editorial-muted space-y-1.5">
+                    <li>Перейдіть на консоль <a href="https://console.firebase.google.com/" target="_blank" rel="noopener noreferrer" className="text-amber-700 hover:underline font-bold">Firebase Console</a> та створіть новий проєкт (це безкоштовно).</li>
+                    <li>У вашому проєкті створіть <strong>Firestore Database</strong> у вільному (test) режимі.</li>
+                    <li>На головній сторінці проєкту натисніть іконку <code className="bg-stone-100 px-1 py-0.5">&lt;/&gt;</code> (Web App), щоб зареєструвати веб-застосунок.</li>
+                    <li>Скопіюйте згенерований об'єкт <code className="bg-stone-100 px-1 py-0.5">firebaseConfig</code> та вставте його поля вище!</li>
+                  </ol>
                 </div>
               </div>
             )}

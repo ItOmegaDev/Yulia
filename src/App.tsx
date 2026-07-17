@@ -20,6 +20,7 @@ import {
   Check,
   CheckCircle,
 } from "lucide-react";
+import * as dbService from "./lib/dbService";
 
 export default function App() {
   const [view, setView] = useState<"shop" | "admin">("shop");
@@ -29,20 +30,24 @@ export default function App() {
   const [categoryFilter, setCategoryFilter] = useState<string>("всі");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
+  // Admin authorization state
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
+    return sessionStorage.getItem("nytka_admin_auth") === "true";
+  });
+  const [passwordInput, setPasswordInput] = useState<string>("");
+  const [passwordError, setPasswordError] = useState<string>("");
+
   // Modal & Drawer States
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
   const [successOrder, setSuccessOrder] = useState<any>(null);
 
-  // Fetch products from API on load
+  // Fetch products from dbService on load
   const loadProducts = async () => {
     try {
-      const response = await fetch("/api/products");
-      if (response.ok) {
-        const data = await response.json();
-        setProducts(data);
-      }
+      const data = await dbService.getProducts();
+      setProducts(data);
     } catch (err) {
       console.error("Error fetching products:", err);
     } finally {
@@ -62,6 +67,43 @@ export default function App() {
       }
     }
   }, []);
+
+  // Router listener to detect /admin, #admin or ?admin=true
+  useEffect(() => {
+    const handleUrlChange = () => {
+      const path = window.location.pathname;
+      const hash = window.location.hash;
+      const search = window.location.search;
+      if (path.endsWith("/admin") || hash === "#admin" || search.includes("admin")) {
+        setView("admin");
+      } else {
+        setView("shop");
+      }
+    };
+
+    handleUrlChange();
+
+    window.addEventListener("hashchange", handleUrlChange);
+    window.addEventListener("popstate", handleUrlChange);
+    const interval = setInterval(handleUrlChange, 1000); // Check fallback for custom navigation
+
+    return () => {
+      window.removeEventListener("hashchange", handleUrlChange);
+      window.removeEventListener("popstate", handleUrlChange);
+      clearInterval(interval);
+    };
+  }, []);
+
+  const handlePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passwordInput === "Yulia2026") {
+      setIsAdminAuthenticated(true);
+      sessionStorage.setItem("nytka_admin_auth", "true");
+      setPasswordError("");
+    } else {
+      setPasswordError("Невірний пароль. Спробуйте ще раз.");
+    }
+  };
 
   // Save cart to localStorage whenever it changes
   const saveCart = (newCart: CartItem[]) => {
@@ -137,10 +179,81 @@ export default function App() {
     setView(targetView);
     if (targetView === "shop") {
       loadProducts();
+      // Remove /admin, #admin or query param admin from URL
+      if (window.location.hash === "#admin") {
+        window.history.pushState(null, "", window.location.pathname + window.location.search);
+      } else if (window.location.pathname.endsWith("/admin")) {
+        const newPath = window.location.pathname.replace(/\/admin$/, "") || "/";
+        window.history.pushState(null, "", newPath + window.location.search);
+      } else if (window.location.search.includes("admin")) {
+        const searchParams = new URLSearchParams(window.location.search);
+        searchParams.delete("admin");
+        const newSearch = searchParams.toString();
+        const searchSuffix = newSearch ? `?${newSearch}` : "";
+        window.history.pushState(null, "", window.location.pathname + searchSuffix + window.location.hash);
+      }
+    } else {
+      // Navigate to #admin so the user has visual feedback and it's bookmarkable / shareable
+      if (!window.location.hash.includes("admin") && !window.location.pathname.endsWith("/admin")) {
+        window.location.hash = "admin";
+      }
     }
   };
 
   if (view === "admin") {
+    if (!isAdminAuthenticated) {
+      return (
+        <div className="min-h-screen bg-stone-50 flex items-center justify-center p-6 text-stone-900 font-sans selection:bg-amber-100 selection:text-amber-900">
+          <div className="w-full max-w-md bg-white border border-stone-200 p-8 shadow-xl space-y-6 rounded-3xl">
+            <div className="text-center space-y-2">
+              <div className="bg-amber-800 text-white p-3.5 rounded-full inline-block mx-auto shadow-xs">
+                <Scissors className="w-6 h-6" />
+              </div>
+              <h2 className="text-xl font-serif font-bold text-stone-800">Вхід в адмін-панель</h2>
+              <p className="text-xs text-stone-500 leading-relaxed">
+                Майстерня Оксамит. Будь ласка, введіть пароль для керування каталогом та замовленнями.
+              </p>
+            </div>
+
+            <form onSubmit={handlePasswordSubmit} className="space-y-4">
+              <div>
+                <label className="block text-[10px] uppercase font-bold text-stone-500 mb-1.5 tracking-wider">Пароль доступу</label>
+                <input
+                  type="password"
+                  value={passwordInput}
+                  onChange={(e) => setPasswordInput(e.target.value)}
+                  placeholder="Введіть пароль"
+                  className="w-full bg-stone-50 border border-stone-200 focus:border-amber-700 rounded-xl px-4 py-2.5 outline-none text-sm transition-all focus:ring-2 focus:ring-amber-100 font-sans"
+                  autoFocus
+                />
+                {passwordError && (
+                  <p className="text-red-600 text-[11px] mt-1.5 font-semibold">
+                    {passwordError}
+                  </p>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-stone-900 hover:bg-amber-900 text-white text-xs uppercase tracking-widest font-bold py-3.5 rounded-xl cursor-pointer transition-colors shadow-xs hover:shadow-md"
+              >
+                Увійти
+              </button>
+            </form>
+
+            <div className="border-t border-stone-100 pt-4 text-center">
+              <button
+                onClick={() => toggleView("shop")}
+                className="text-stone-500 hover:text-stone-800 text-xs hover:underline cursor-pointer"
+              >
+                ← Повернутися до магазину
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return <AdminPanel onBackToStore={() => toggleView("shop")} />;
   }
 
@@ -184,16 +297,6 @@ export default function App() {
 
         {/* Navigation actions */}
         <div className="flex items-center gap-3.5">
-          {/* Admin toggle */}
-          <button
-            onClick={() => toggleView("admin")}
-            className="text-stone-500 hover:text-amber-900 p-2 rounded-xl hover:bg-stone-50 transition-all flex items-center gap-1 text-xs font-bold cursor-pointer"
-            title="Перейти в адмін-панель"
-          >
-            <Settings className="w-4 h-4" />
-            <span className="hidden sm:inline">Адмін-зона</span>
-          </button>
-
           {/* Cart Icon with count badge */}
           <button
             onClick={() => setIsCartOpen(true)}

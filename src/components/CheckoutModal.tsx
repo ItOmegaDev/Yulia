@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { CartItem, Customer, Measurements } from "../types";
 import { X, ShieldCheck, CreditCard, Lock, ArrowRight, Loader2, CheckCircle } from "lucide-react";
+import * as dbService from "../lib/dbService";
 
 interface CheckoutModalProps {
   cartItems: CartItem[];
@@ -145,58 +146,37 @@ export default function CheckoutModal({
     }
 
     try {
-      // Call payment simulator endpoint
-      const payResponse = await fetch("/api/payment-simulate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cardNumber,
-          expiry: cardExpiry,
-          cvv: cardCvv,
-          amount: total,
-          cardholder,
-        }),
-      });
-      const payResult = await payResponse.json();
+      // Simulated client-side payment logic (works perfectly in static deployment!)
+      const transactionId = "trn_" + Math.random().toString(36).substring(2, 10);
+      const timestamp = new Date().toISOString();
 
-      if (payResult.success) {
-        // Now submit the order
-        const orderPayload = {
-          customer,
-          items: cartItems.map((item) => ({
-            id: item.product.id,
-            name: item.product.name,
-            price: item.product.price,
-            quantity: item.quantity,
-            selectedSize: item.selectedSize,
-            measurements: item.measurements,
-          })),
-          total,
-          paymentStatus: "Оплачено",
-          paymentDetails: {
-            provider: "LiqPay (Simulated)",
-            transactionId: payResult.transactionId,
-            timestamp: payResult.timestamp,
-          },
-          notes,
-        };
+      // Submit the order using client-side dbService (LocalStorage fallback or Firebase)
+      const orderPayload = {
+        customer,
+        items: cartItems.map((item) => ({
+          id: item.product.id,
+          name: item.product.name,
+          price: item.product.price,
+          quantity: item.quantity,
+          selectedSize: item.selectedSize,
+          measurements: item.measurements,
+        })),
+        total,
+        paymentStatus: "Оплачено",
+        paymentDetails: {
+          provider: "LiqPay (Simulated)",
+          transactionId,
+          timestamp,
+        },
+        notes,
+      };
 
-        const orderResponse = await fetch("/api/orders", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(orderPayload),
-        });
-        const orderResult = await orderResponse.json();
-
-        setCreatedOrder(orderResult);
-        setStep("success");
-      } else {
-        setStep("payment");
-        setPaymentError(payResult.error || "Помилка проведення платежу.");
-      }
+      const orderResult = await dbService.createOrder(orderPayload);
+      setCreatedOrder(orderResult);
+      setStep("success");
     } catch (err) {
       setStep("payment");
-      setPaymentError("Не вдалося зв'язатися з банком. Перевірте з'єднання.");
+      setPaymentError("Не вдалося зв'язатися з базою даних. Перевірте з'єднання.");
     }
   };
 

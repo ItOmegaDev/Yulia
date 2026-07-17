@@ -1,0 +1,33 @@
+{
+  "firestore": {
+    "collections": {
+      "products": {
+        "schema": {
+          "name": "string",
+          "description": "string",
+          "price": "number",
+          "category": "string",
+          "image": "string",
+          "sizes": "array",
+          "materials": "string",
+          "craftTime": "string",
+          "featured": "boolean",
+          "rating": "number",
+          "reviews": "number"
+        }
+      },
+      "orders": {
+        "schema": {
+          "orderNumber": "string",
+          "date": "string",
+          "status": "string",
+          "paymentStatus": "string",
+          "total": "number",
+          "customer": "map",
+          "items": "array",
+          "notes": "string"
+        }
+      }
+    }
+  }
+}
