@@ -55,6 +55,7 @@ export default function App() {
   });
   const [categoryFilter, setCategoryFilter] = useState<string>("всі");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [sortBy, setSortBy] = useState<string>("default");
   const [settings, setSettings] = useState<SiteSettings | null>(() => {
     const cached = localStorage.getItem("nytka_site_settings_cache") || localStorage.getItem("nytka_site_settings");
     if (cached) {
@@ -185,6 +186,9 @@ export default function App() {
     } else {
       saveCart([...cart, item]);
     }
+    
+    // Open cart drawer instantly so the user has immediate feedback and visibility
+    setIsCartOpen(true);
   };
 
   // Update quantity in cart
@@ -230,6 +234,23 @@ export default function App() {
       product.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.materials.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
+  });
+
+  // Sort products based on user selection
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    if (sortBy === "price-asc") {
+      return a.price - b.price;
+    }
+    if (sortBy === "price-desc") {
+      return b.price - a.price;
+    }
+    if (sortBy === "popularity") {
+      if (b.rating !== a.rating) {
+        return b.rating - a.rating;
+      }
+      return b.reviews - a.reviews;
+    }
+    return 0; // default (from database)
   });
 
   // Switch to admin view and refresh products afterwards
@@ -427,10 +448,10 @@ export default function App() {
 
       {/* 5. CATEGORY TABS & SEARCH */}
       <section className="bg-white border-b border-stone-200 py-4 px-6 sticky top-[72px] z-30 shadow-2xs">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-4 items-center justify-between">
+        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-4 items-center justify-between">
           
           {/* Tabs */}
-          <div className="flex gap-2 w-full md:w-auto overflow-x-auto shrink-0 pb-1 md:pb-0">
+          <div className="flex gap-2 w-full lg:w-auto overflow-x-auto shrink-0 pb-1 lg:pb-0 scrollbar-none">
             {[
               { id: "всі", label: "Всі вироби" },
               { id: "одяг", label: "Одяг ручної роботи" },
@@ -453,17 +474,36 @@ export default function App() {
             ))}
           </div>
 
-          {/* Search bar (mobile-friendly or secondary on desktop) */}
-          <div className="relative w-full md:hidden">
-            <Search className="absolute top-1/2 left-3 -translate-y-1/2 text-stone-400 w-4 h-4" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Пошук виробу чи матеріалу..."
-              className="w-full bg-stone-50 border border-stone-200 focus:border-amber-500 focus:ring-amber-100 rounded-xl pl-9 pr-4 py-2 text-xs outline-none transition-all focus:ring-2"
-            />
+          {/* Right column: Sorting & Mobile Search */}
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+            {/* Sorting Dropdown */}
+            <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+              <span className="text-[10px] uppercase tracking-wider font-bold text-stone-400 whitespace-nowrap">Сортування:</span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="bg-stone-50 border border-stone-200 focus:border-amber-500 focus:ring-amber-100 rounded-xl px-3.5 py-2 text-xs outline-none transition-all focus:ring-2 font-bold text-stone-700 cursor-pointer w-full sm:w-52"
+              >
+                <option value="default">За замовчуванням</option>
+                <option value="popularity">★ За популярністю</option>
+                <option value="price-asc">₴ Ціна: від низької до високої</option>
+                <option value="price-desc">₴ Ціна: від високої до низької</option>
+              </select>
+            </div>
+
+            {/* Search bar (mobile-friendly) */}
+            <div className="relative w-full md:hidden">
+              <Search className="absolute top-1/2 left-3 -translate-y-1/2 text-stone-400 w-4 h-4" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Пошук виробу чи матеріалу..."
+                className="w-full bg-stone-50 border border-stone-200 focus:border-amber-500 focus:ring-amber-100 rounded-xl pl-9 pr-4 py-2 text-xs outline-none transition-all focus:ring-2"
+              />
+            </div>
           </div>
+
         </div>
       </section>
 
@@ -481,11 +521,11 @@ export default function App() {
                 <h3 className="text-lg font-bold text-stone-900">
                   {categoryFilter === "всі" ? "Всі вироби" : `Категорія: ${categoryFilter}`}
                 </h3>
-                <p className="text-xs text-stone-500">Знайдено {filteredProducts.length} авторських моделей</p>
+                <p className="text-xs text-stone-500">Знайдено {sortedProducts.length} авторських моделей</p>
               </div>
             </div>
 
-            {filteredProducts.length === 0 ? (
+            {sortedProducts.length === 0 ? (
               <div className="bg-white border border-stone-200 rounded-3xl p-16 text-center text-stone-400">
                 <ShoppingBag className="w-12 h-12 text-stone-300 mx-auto mb-3" />
                 <p className="font-semibold text-stone-600">Наразі немає виробів у цій категорії</p>
@@ -493,7 +533,7 @@ export default function App() {
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredProducts.map((product) => (
+                {sortedProducts.map((product) => (
                   <ProductCard
                     key={product.id}
                     product={product}

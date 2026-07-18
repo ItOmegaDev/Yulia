@@ -16,7 +16,6 @@ export default function ProductDetailsModal({
 }: ProductDetailsModalProps) {
   const [selectedSize, setSelectedSize] = useState<string>(product.sizes[0] || "M");
   const [showHowToMeasure, setShowHowToMeasure] = useState<boolean>(false);
-  const [addedSuccess, setAddedSuccess] = useState<boolean>(false);
   
   // Custom measurements state
   const [measurements, setMeasurements] = useState<Measurements>({
@@ -84,11 +83,7 @@ export default function ProductDetailsModal({
     };
 
     onAddToCart(cartItem);
-    setAddedSuccess(true);
-    setTimeout(() => {
-      setAddedSuccess(false);
-      onClose();
-    }, 1500);
+    onClose();
   };
 
   return (
@@ -274,27 +269,13 @@ export default function ProductDetailsModal({
 
           <div className="mt-6 border-t border-editorial-border/40 pt-5">
             <motion.button
-              whileHover={addedSuccess ? {} : { scale: 1.02 }}
-              whileTap={addedSuccess ? {} : { scale: 0.98 }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               onClick={handleAdd}
-              disabled={addedSuccess}
-              className={`w-full py-4 px-6 rounded-none font-bold text-xs uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                addedSuccess
-                  ? "bg-emerald-700 text-white shadow-none"
-                  : "bg-editorial-dark text-white hover:bg-editorial-dark/95"
-              }`}
+              className="w-full py-4 px-6 rounded-none font-bold text-xs uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 cursor-pointer bg-editorial-dark text-white hover:bg-[#2c2925]"
             >
-              {addedSuccess ? (
-                <>
-                  <Check className="w-4 h-4 animate-bounce" />
-                  Додано у кошик!
-                </>
-              ) : (
-                <>
-                  <Scissors className="w-4 h-4 text-editorial-cream" />
-                  Додати виріб у кошик • {product.price.toLocaleString("uk-UA")} ₴
-                </>
-              )}
+              <Scissors className="w-4 h-4 text-editorial-cream" />
+              Додати виріб у кошик • {product.price.toLocaleString("uk-UA")} ₴
             </motion.button>
           </div>
         </div>
