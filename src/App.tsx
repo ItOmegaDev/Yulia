@@ -24,12 +24,45 @@ import * as dbService from "./lib/dbService";
 
 export default function App() {
   const [view, setView] = useState<"shop" | "admin">("shop");
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<Product[]>(() => {
+    const cached = localStorage.getItem("nytka_products_cache");
+    if (cached) {
+      try {
+        return JSON.parse(cached);
+      } catch (e) {}
+    }
+    const local = localStorage.getItem("nytka_local_products");
+    if (local) {
+      try {
+        return JSON.parse(local);
+      } catch (e) {}
+    }
+    return [];
+  });
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(() => {
+    const cached = localStorage.getItem("nytka_products_cache") || localStorage.getItem("nytka_local_products");
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (parsed && parsed.length > 0) {
+          return false;
+        }
+      } catch (e) {}
+    }
+    return true;
+  });
   const [categoryFilter, setCategoryFilter] = useState<string>("всі");
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [settings, setSettings] = useState<SiteSettings | null>(null);
+  const [settings, setSettings] = useState<SiteSettings | null>(() => {
+    const cached = localStorage.getItem("nytka_site_settings_cache") || localStorage.getItem("nytka_site_settings");
+    if (cached) {
+      try {
+        return JSON.parse(cached);
+      } catch (e) {}
+    }
+    return null;
+  });
 
   // Admin authorization state
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
@@ -214,7 +247,7 @@ export default function App() {
               </div>
               <h2 className="text-xl font-serif font-bold text-stone-800">Вхід в адмін-панель</h2>
               <p className="text-xs text-stone-500 leading-relaxed">
-                Майстерня Оксамит. Будь ласка, введіть пароль для керування каталогом та замовленнями.
+                Майстерня Шовк. Будь ласка, введіть пароль для керування каталогом та замовленнями.
               </p>
             </div>
 
@@ -263,12 +296,6 @@ export default function App() {
   return (
     <div className="min-h-screen bg-stone-50 text-stone-900 font-sans flex flex-col selection:bg-amber-100 selection:text-amber-900">
       
-      {/* 1. ANNOUNCEMENT BAR */}
-      <div className="bg-amber-900 text-amber-50 text-[11px] font-bold py-2 px-4 text-center tracking-widest uppercase flex items-center justify-center gap-2">
-        <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
-        {settings?.announcement || "Безкоштовне коригування лекал під ваші індивідуальні мірки для кожного замовлення"}
-      </div>
-
       {/* 2. NAVIGATION HEADER */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-100 px-6 py-4 flex items-center justify-between shadow-xs">
         {/* Brand logo */}
@@ -278,7 +305,7 @@ export default function App() {
           </div>
           <div>
             <h1 className="text-base font-extrabold tracking-tight text-stone-900">
-              Оксамит
+              Шовк
             </h1>
             <p className="text-[10px] text-amber-800 font-semibold uppercase tracking-widest">
               Швейна Майстерня
@@ -487,13 +514,13 @@ export default function App() {
       <footer className="bg-stone-950 text-stone-400 text-xs py-8 px-6 border-t border-stone-900 text-center space-y-3.5">
         <div className="flex justify-center items-center gap-1.5 text-stone-200">
           <Scissors className="w-4 h-4 text-amber-500" />
-          <span className="font-bold uppercase tracking-wider text-[11px]">Оксамит • Майстерня ручної роботи</span>
+          <span className="font-bold uppercase tracking-wider text-[11px]">Шовк • Майстерня ручної роботи</span>
         </div>
         <p className="max-w-md mx-auto text-stone-500">
           {settings?.footerText || "Україна, м. Київ • Екологічний пошив одягу та предметів побуту за вашими власними мірками."}
         </p>
         <div className="flex flex-col sm:flex-row justify-center items-center gap-2 sm:gap-4 text-stone-600 text-[10px]">
-          <span>© {new Date().getFullYear()} Оксамит. Усі права захищені. Симулятор оплати LiqPay Sandbox.</span>
+          <span>© {new Date().getFullYear()} Шовк. Усі права захищені. Симулятор оплати LiqPay Sandbox.</span>
           <span className="hidden sm:inline">•</span>
           <button
             onClick={() => toggleView("admin")}

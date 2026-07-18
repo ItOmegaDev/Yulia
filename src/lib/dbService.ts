@@ -24,92 +24,7 @@ export interface FirebaseConfig {
   appId: string;
 }
 
-const INITIAL_PRODUCTS: Product[] = [
-  {
-    id: "prod_1",
-    name: "Лляна сукня «Дика ружа»",
-    description: "Ніжна сукня вільного крою, виготовлена зі 100% пом'якшеного льону. Має пишні рукави з витонченими зборками та практичні кишені у бокових швах. Кожен виріб шиється індивідуально за вашими мірками.",
-    price: 2450,
-    category: "одяг",
-    image: "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800&auto=format&fit=crop&q=80",
-    sizes: ["XS", "S", "M", "L", "XL", "Індивідуальний"],
-    materials: "100% натуральний пом'якшений льон",
-    craftTime: "5-7 днів",
-    featured: true,
-    rating: 4.9,
-    reviews: 14,
-  },
-  {
-    id: "prod_2",
-    name: "Лляна чоловіча сорочка з вишивкою",
-    description: "Сучасна інтерпретація традиційної української вишиванки. Лаконічний орнамент, виконаний якісними шовковими нитками на білому білоруському льоні. Ідеально підходить як для урочистих подій, так і на щодень.",
-    price: 2800,
-    category: "одяг",
-    image: "https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=800&auto=format&fit=crop&q=80",
-    sizes: ["S", "M", "L", "XL", "XXL", "Індивідуальний"],
-    materials: "100% білий льон, вишивальна нитка віскоза",
-    craftTime: "7-10 днів",
-    featured: true,
-    rating: 5.0,
-    reviews: 21,
-  },
-  {
-    id: "prod_3",
-    name: "Комплект лляної постільної білизни «Оливковий гай»",
-    description: "Екологічний комплект постільної білизни з органічного льону. Тканина має легкий масажний ефект, чудово регулює температуру в будь-яку пору року. Наволочки та підковдра застібаються на кокосові ґудзики.",
-    price: 4800,
-    category: "текстиль",
-    image: "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=800&auto=format&fit=crop&q=80",
-    sizes: ["Полуторний", "Двоспальний", "Євро", "Сімейний", "Індивідуальний"],
-    materials: "100% органічний льон, кокосова фурнітура",
-    craftTime: "4-6 днів",
-    featured: false,
-    rating: 4.8,
-    reviews: 9,
-  },
-  {
-    id: "prod_4",
-    name: "Еко-сумка шопер з вишитим колоском",
-    description: "Міцна та стильна сумка-шопер із щільної бавовняної двонитки. Прикрашена авторською ручною вишивкою у вигляді пшеничного колоска. Має внутрішню кишеню для дрібниць та посилені ручки.",
-    price: 650,
-    category: "аксесуари",
-    image: "https://images.unsplash.com/photo-1544816155-12df9643f363?w=800&auto=format&fit=crop&q=80",
-    sizes: ["Універсальний"],
-    materials: "Щільна бавовна (двонитка), нитки муліне",
-    craftTime: "2-3 дні",
-    featured: true,
-    rating: 4.7,
-    reviews: 32,
-  },
-  {
-    id: "prod_5",
-    name: "Лляна скатертина з мереживом «Поліське літо»",
-    description: "Прямокутна скатертина з натурального сірого льону, оздоблена витонченим мереживом ручної роботи по периметру. Створить неповторну атмосферу затишку у вашому домі або стане чудовим подарунком.",
-    price: 1600,
-    category: "текстиль",
-    image: "https://images.unsplash.com/photo-1603006905003-be475563bc59?w=800&auto=format&fit=crop&q=80",
-    sizes: ["140x180 см", "140x220 см", "Індивідуальний"],
-    materials: "Натуральний льон, бавовняне мереживо",
-    craftTime: "3-5 днів",
-    featured: false,
-    rating: 4.9,
-    reviews: 11,
-  },
-  {
-    id: "prod_6",
-    name: "Набір бавовняних кухонних серветок",
-    description: "Набір із 4 серветок з яскравим квітковим принтом та ручною підрубкою куточків конвертом. Тканина чудово поглинає вологу та стійка до частого прання.",
-    price: 450,
-    category: "текстиль",
-    image: "https://images.unsplash.com/photo-1588854337236-6889d631faa8?w=800&auto=format&fit=crop&q=80",
-    sizes: ["40x40 см (4 шт)"],
-    materials: "100% щільна бавовна",
-    craftTime: "1-2 дні",
-    featured: false,
-    rating: 4.6,
-    reviews: 18,
-  },
-];
+const INITIAL_PRODUCTS: Product[] = [];
 
 const INITIAL_ORDERS: Order[] = [];
 
@@ -216,7 +131,39 @@ function saveLocalOrders(orders: Order[]) {
 }
 
 // DB OPERATIONS
+export async function clearAllDatabase(): Promise<boolean> {
+  localStorage.setItem("nytka_db_initialized", "true");
+  localStorage.setItem("nytka_clean_slate_v5", "true");
+  
+  localStorage.setItem("nytka_local_products", JSON.stringify([]));
+  localStorage.setItem("nytka_products_cache", JSON.stringify([]));
+  localStorage.setItem("nytka_local_orders", JSON.stringify([]));
+  localStorage.setItem("nytka_cart", JSON.stringify([]));
+  
+  if (firestoreDb) {
+    try {
+      const prodSnap = await getDocs(collection(firestoreDb, "products"));
+      for (const d of prodSnap.docs) {
+        await deleteDoc(doc(firestoreDb, "products", d.id));
+      }
+      
+      const ordSnap = await getDocs(collection(firestoreDb, "orders"));
+      for (const d of ordSnap.docs) {
+        await deleteDoc(doc(firestoreDb, "orders", d.id));
+      }
+    } catch (err) {
+      console.error("Error clearing Firestore database:", err);
+    }
+  }
+  return true;
+}
+
 export async function getProducts(): Promise<Product[]> {
+  if (localStorage.getItem("nytka_clean_slate_v5") !== "true") {
+    await clearAllDatabase();
+    return [];
+  }
+
   if (firestoreDb) {
     try {
       const q = collection(firestoreDb, "products");
@@ -225,17 +172,15 @@ export async function getProducts(): Promise<Product[]> {
       querySnapshot.forEach((docSnap) => {
         list.push({ id: docSnap.id, ...docSnap.data() } as Product);
       });
-      if (list.length === 0 && localStorage.getItem("nytka_db_initialized") !== "true") {
-        // If Firebase is connected but empty, seed the initial products into Firestore
-        await seedFirebaseWithInitialData();
-        return INITIAL_PRODUCTS;
-      }
+      localStorage.setItem("nytka_products_cache", JSON.stringify(list));
       return list;
     } catch (err) {
       console.error("Firestore getProducts error, falling back to local:", err);
     }
   }
-  return getLocalProducts();
+  const local = getLocalProducts();
+  localStorage.setItem("nytka_products_cache", JSON.stringify(local));
+  return local;
 }
 
 export async function createProduct(prodData: Omit<Product, "id">): Promise<Product> {
@@ -264,20 +209,32 @@ export async function createProduct(prodData: Omit<Product, "id">): Promise<Prod
         rating: Number(newProd.rating),
         reviews: Number(newProd.reviews),
       });
-      return newProd;
     } catch (err) {
       console.error("Firestore createProduct error:", err);
     }
   }
 
+  // Always keep local list and cache synchronized!
   const local = getLocalProducts();
   local.push(newProd);
   saveLocalProducts(local);
+
+  const cached = localStorage.getItem("nytka_products_cache");
+  if (cached) {
+    try {
+      const parsed = JSON.parse(cached) as Product[];
+      parsed.push(newProd);
+      localStorage.setItem("nytka_products_cache", JSON.stringify(parsed));
+    } catch (e) {}
+  }
+
   return newProd;
 }
 
 export async function updateProduct(id: string, prodData: Partial<Product>): Promise<Product> {
   localStorage.setItem("nytka_db_initialized", "true");
+  let updatedProd: Product | null = null;
+
   if (firestoreDb) {
     try {
       const docRef = doc(firestoreDb, "products", id);
@@ -290,44 +247,67 @@ export async function updateProduct(id: string, prodData: Partial<Product>): Pro
         }
       });
       await updateDoc(docRef, updatePayload);
-      
-      // Get the complete product from local state or merge
-      const localProds = getLocalProducts();
-      const existing = localProds.find((p) => p.id === id);
-      return { ...existing, ...prodData, id } as Product;
     } catch (err) {
       console.error("Firestore updateProduct error:", err);
     }
   }
 
+  // Always keep local list and cache synchronized!
   const local = getLocalProducts();
   const index = local.findIndex((p) => p.id === id);
   if (index !== -1) {
     local[index] = { ...local[index], ...prodData };
     saveLocalProducts(local);
-    return local[index];
+    updatedProd = local[index];
+  } else {
+    updatedProd = { id, ...prodData } as Product;
   }
-  throw new Error("Product not found");
+
+  const cached = localStorage.getItem("nytka_products_cache");
+  if (cached) {
+    try {
+      const parsed = JSON.parse(cached) as Product[];
+      const cacheIndex = parsed.findIndex((p) => p.id === id);
+      if (cacheIndex !== -1) {
+        parsed[cacheIndex] = { ...parsed[cacheIndex], ...prodData };
+        localStorage.setItem("nytka_products_cache", JSON.stringify(parsed));
+      }
+    } catch (e) {}
+  }
+
+  return updatedProd;
 }
 
 export async function deleteProduct(id: string): Promise<boolean> {
   localStorage.setItem("nytka_db_initialized", "true");
+  let deletedFromFirestore = false;
   if (firestoreDb) {
     try {
       await deleteDoc(doc(firestoreDb, "products", id));
-      return true;
+      deletedFromFirestore = true;
     } catch (err) {
       console.error("Firestore deleteProduct error:", err);
     }
   }
 
+  // Always keep local list and cache synchronized!
   const local = getLocalProducts();
   const filtered = local.filter((p) => p.id !== id);
-  if (filtered.length < local.length) {
+  const deletedFromLocal = filtered.length < local.length;
+  if (deletedFromLocal) {
     saveLocalProducts(filtered);
-    return true;
   }
-  return false;
+
+  const cached = localStorage.getItem("nytka_products_cache");
+  if (cached) {
+    try {
+      const parsed = JSON.parse(cached) as Product[];
+      const filteredCache = parsed.filter((p) => p.id !== id);
+      localStorage.setItem("nytka_products_cache", JSON.stringify(filteredCache));
+    } catch (e) {}
+  }
+
+  return deletedFromFirestore || deletedFromLocal;
 }
 
 export async function getOrders(): Promise<Order[]> {
@@ -463,13 +443,15 @@ export async function getSettings(): Promise<SiteSettings> {
     try {
       const docSnap = await getDoc(doc(firestoreDb, "settings", "site"));
       if (docSnap.exists()) {
-        return docSnap.data() as SiteSettings;
+        const data = docSnap.data() as SiteSettings;
+        localStorage.setItem("nytka_site_settings_cache", JSON.stringify(data));
+        return data;
       }
     } catch (err) {
       console.error("Firestore getSettings error:", err);
     }
   }
-  const saved = localStorage.getItem("nytka_site_settings");
+  const saved = localStorage.getItem("nytka_site_settings") || localStorage.getItem("nytka_site_settings_cache");
   if (saved) {
     try {
       return JSON.parse(saved);
@@ -489,5 +471,6 @@ export async function saveSettings(settings: SiteSettings): Promise<SiteSettings
     }
   }
   localStorage.setItem("nytka_site_settings", JSON.stringify(settings));
+  localStorage.setItem("nytka_site_settings_cache", JSON.stringify(settings));
   return settings;
 }

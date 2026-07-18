@@ -1076,6 +1076,30 @@ export default function AdminPanel({ onBackToStore }: AdminPanelProps) {
                     </button>
                   </div>
                 </form>
+
+                {/* Database Tools */}
+                <div className="border-t border-editorial-border/40 pt-6 mt-8 space-y-4">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-red-800 font-sans">Небезпечна зона (Danger Zone)</h4>
+                  <div className="p-4 bg-red-50/50 border border-red-200/50 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="space-y-0.5">
+                      <h5 className="font-bold text-xs text-red-900">Очистити всю базу даних</h5>
+                      <p className="text-[11px] text-red-700/80 leading-relaxed">Видаляє всі товари та замовлення (виручка стане 0) як у локальному кеші, так і у хмарі Firestore.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (window.confirm("УВАГА! Ви дійсно хочете повністю очистити базу даних? Цю дію неможливо скасувати. Всі товари та історія замовлень (виручка) будуть видалені!")) {
+                          await dbService.clearAllDatabase();
+                          alert("Базу даних успішно очищено! Сторінка буде автоматично перезавантажена.");
+                          window.location.reload();
+                        }
+                      }}
+                      className="px-4 py-2.5 bg-red-700 hover:bg-red-800 text-white text-xs uppercase tracking-wider font-bold transition-colors cursor-pointer shrink-0"
+                    >
+                      Очистити все
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
           </>
