@@ -436,6 +436,16 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   benefit3Title: "Супровід кравчині",
   benefit3Desc: "Після оформлення замовлення наш майстер-швець особисто контролює етапи підготовки та зв'яжеться з вами за потреби для підтвердження обхватів.",
   footerText: "Україна, м. Київ • Екологічний пошив одягу та предметів побуту за вашими власними мірками.",
+  cardPaymentEnabled: true,
+  cardPaymentTitle: "Онлайн-оплата карткою",
+  cardPaymentDesc: "Швидкий платіж Visa/Mastercard (через LiqPay Sandbox).",
+  codEnabled: true,
+  codTitle: "Накладений платіж (при отриманні)",
+  codDesc: "Оплата у відділенні Нової Пошти після огляду та примірки виробу.",
+  ibanEnabled: true,
+  ibanTitle: "Оплата за реквізитами (IBAN)",
+  ibanDesc: "Наш менеджер надішле вам рахунок-фактуру ФОП у месенджер після перевірки мірок.",
+  ibanDetails: "UA 89 300024 000002600123456789 ФОП Ковальчук М.І., ЄДРПОУ 12345678, призначення: Оплата за замовлення",
 };
 
 export async function getSettings(): Promise<SiteSettings> {
@@ -444,8 +454,9 @@ export async function getSettings(): Promise<SiteSettings> {
       const docSnap = await getDoc(doc(firestoreDb, "settings", "site"));
       if (docSnap.exists()) {
         const data = docSnap.data() as SiteSettings;
-        localStorage.setItem("nytka_site_settings_cache", JSON.stringify(data));
-        return data;
+        const merged = { ...DEFAULT_SETTINGS, ...data };
+        localStorage.setItem("nytka_site_settings_cache", JSON.stringify(merged));
+        return merged;
       }
     } catch (err) {
       console.error("Firestore getSettings error:", err);
@@ -454,7 +465,8 @@ export async function getSettings(): Promise<SiteSettings> {
   const saved = localStorage.getItem("nytka_site_settings") || localStorage.getItem("nytka_site_settings_cache");
   if (saved) {
     try {
-      return JSON.parse(saved);
+      const parsed = JSON.parse(saved);
+      return { ...DEFAULT_SETTINGS, ...parsed };
     } catch {
       // ignore
     }

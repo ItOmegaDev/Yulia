@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { CartItem, Customer, Measurements } from "../types";
-import { X, ShieldCheck, CreditCard, Lock, ArrowRight, Loader2, CheckCircle } from "lucide-react";
+import { CartItem, Customer, Measurements, SiteSettings } from "../types";
+import { X, ShieldCheck, CreditCard, Lock, ArrowRight, Loader2, CheckCircle, Building2, Banknote } from "lucide-react";
 import * as dbService from "../lib/dbService";
 
 interface CheckoutModalProps {
@@ -8,6 +8,7 @@ interface CheckoutModalProps {
   total: number;
   onClose: () => void;
   onOrderSuccess: (orderData: any) => void;
+  settings?: SiteSettings | null;
 }
 
 type Step = "details" | "payment" | "processing" | "success";
@@ -17,10 +18,23 @@ export default function CheckoutModal({
   total,
   onClose,
   onOrderSuccess,
+  settings,
 }: CheckoutModalProps) {
   const [step, setStep] = useState<Step>("details");
   const [loadingMsg, setLoadingMsg] = useState<string>("");
   const [createdOrder, setCreatedOrder] = useState<any>(null);
+
+  const activeSettings = settings || dbService.DEFAULT_SETTINGS;
+
+  // Find first enabled payment method
+  const getInitialPaymentMethod = () => {
+    if (activeSettings.cardPaymentEnabled) return "card";
+    if (activeSettings.codEnabled) return "cod";
+    if (activeSettings.ibanEnabled) return "iban";
+    return "card"; // fallback
+  };
+
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"card" | "cod" | "iban">(getInitialPaymentMethod());
 
   // Customer Details Form
   const [customer, setCustomer] = useState<Customer>({
@@ -112,6 +126,55 @@ export default function CheckoutModal({
 
   const handlePaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (selectedPaymentMethod !== "card") {
+      setStep("processing");
+      
+      const steps = [
+        "Обробка запиту...",
+        "Перевірка наявності виробів...",
+        "Формування замовлення в базі даних...",
+        "Генерація рахунку та інструкцій..."
+      ];
+
+      for (let i = 0; i < steps.length; i++) {
+        setLoadingMsg(steps[i]);
+        await new Promise((resolve) => setTimeout(resolve, 600));
+      }
+
+      try {
+        const isCod = selectedPaymentMethod === "cod";
+        const paymentStatus = isCod ? "При отриманні" : "Очікує оплати";
+        const paymentDetails = isCod 
+          ? { provider: "Cash on Delivery", method: activeSettings.codTitle || "Накладений платіж (при отриманні)" }
+          : { provider: "Bank Transfer", method: activeSettings.ibanTitle || "Оплата на рахунок IBAN (за реквізитами)", ibanDetails: activeSettings.ibanDetails };
+
+        const orderPayload = {
+          customer,
+          items: cartItems.map((item) => ({
+            id: item.product.id,
+            name: item.product.name,
+            price: item.product.price,
+            quantity: item.quantity,
+            selectedSize: item.selectedSize,
+            measurements: item.measurements,
+          })),
+          total,
+          paymentStatus,
+          paymentDetails,
+          notes,
+        };
+
+        const orderResult = await dbService.createOrder(orderPayload);
+        setCreatedOrder(orderResult);
+        setStep("success");
+      } catch (err) {
+        setStep("payment");
+        setPaymentError("Не вдалося зв'язатися з базою даних. Перевірте з'єднання.");
+      }
+      return;
+    }
+
     const cleanNum = cardNumber.replace(/\s+/g, "");
     if (cleanNum.length !== 16) {
       setPaymentError("Номер картки повинен містити 16 цифр.");
@@ -130,7 +193,6 @@ export default function CheckoutModal({
       return;
     }
 
-    // Step 3: Start loading simulation
     setStep("processing");
     
     const steps = [
@@ -146,11 +208,9 @@ export default function CheckoutModal({
     }
 
     try {
-      // Simulated client-side payment logic (works perfectly in static deployment!)
       const transactionId = "trn_" + Math.random().toString(36).substring(2, 10);
       const timestamp = new Date().toISOString();
 
-      // Submit the order using client-side dbService (LocalStorage fallback or Firebase)
       const orderPayload = {
         customer,
         items: cartItems.map((item) => ({
@@ -167,6 +227,7 @@ export default function CheckoutModal({
           provider: "LiqPay (Simulated)",
           transactionId,
           timestamp,
+          method: activeSettings.cardPaymentTitle || "Онлайн-оплата карткою",
         },
         notes,
       };
@@ -327,116 +388,224 @@ export default function CheckoutModal({
             <form onSubmit={handlePaymentSubmit} className="space-y-4">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-xs font-semibold text-editorial-text uppercase tracking-widest font-sans">
-                  2. Онлайн-оплата карткою
+                  2. Вибір способу та проведення оплати
                 </h3>
                 <span className="text-[10px] text-editorial-muted font-sans uppercase">Крок 2 з 2</span>
               </div>
 
-              {/* Secure badge */}
-              <div className="bg-editorial-cream border border-editorial-border/80 text-editorial-text px-4 py-3 rounded-none text-xs flex gap-2.5 leading-relaxed">
-                <ShieldCheck className="w-5 h-5 text-editorial-dark shrink-0 mt-0.5" />
-                <div>
-                  <strong className="font-serif font-normal text-sm block mb-0.5">Тестовий платіж (LiqPay Sandbox)</strong>
-                  <p className="text-[11px] text-editorial-dark-muted font-sans font-light">Введіть будь-які тестові реквізити картки (16 цифр, термін дії, CVV), щоб симулювати транзакцію.</p>
-                </div>
-              </div>
+              {/* Dynamic Payment Method Selection List */}
+              <div className="grid grid-cols-1 gap-2.5 mb-4">
+                {activeSettings.cardPaymentEnabled && (
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedPaymentMethod("card"); setPaymentError(""); }}
+                    className={`p-3.5 border text-left rounded-none flex items-start gap-3.5 transition-all cursor-pointer ${
+                      selectedPaymentMethod === "card"
+                        ? "border-amber-800 bg-amber-50/20 shadow-xs"
+                        : "border-editorial-border bg-white hover:bg-stone-50/50"
+                    }`}
+                  >
+                    <CreditCard className={`w-5 h-5 mt-0.5 ${selectedPaymentMethod === "card" ? "text-amber-800" : "text-editorial-muted"}`} />
+                    <div className="flex-1">
+                      <strong className="block text-xs font-serif font-normal text-editorial-text">
+                        {activeSettings.cardPaymentTitle || "Онлайн-оплата карткою"}
+                      </strong>
+                      <span className="block text-[11px] text-editorial-muted mt-0.5 leading-relaxed font-sans">
+                        {activeSettings.cardPaymentDesc || "Швидкий платіж Visa/Mastercard (LiqPay Sandbox)."}
+                      </span>
+                    </div>
+                  </button>
+                )}
 
-              {/* Simulated Card GUI mockup */}
-              <div className="bg-[#2A2420] text-editorial-cream p-5 rounded-none shadow-xl space-y-6 border border-[#3E352F] relative overflow-hidden">
-                <div className="absolute right-0 bottom-0 translate-x-10 translate-y-10 w-44 h-44 rounded-full bg-white/5 blur-3xl" />
-                
-                <div className="flex items-center justify-between">
-                  <span className="text-[9px] uppercase tracking-[0.2em] text-[#8C867E] font-semibold">Симулятор Оплати</span>
-                  <CreditCard className="w-6 h-6 text-editorial-cream" />
-                </div>
+                {activeSettings.codEnabled && (
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedPaymentMethod("cod"); setPaymentError(""); }}
+                    className={`p-3.5 border text-left rounded-none flex items-start gap-3.5 transition-all cursor-pointer ${
+                      selectedPaymentMethod === "cod"
+                        ? "border-amber-800 bg-amber-50/20 shadow-xs"
+                        : "border-editorial-border bg-white hover:bg-stone-50/50"
+                    }`}
+                  >
+                    <Banknote className={`w-5 h-5 mt-0.5 ${selectedPaymentMethod === "cod" ? "text-amber-800" : "text-editorial-muted"}`} />
+                    <div className="flex-1">
+                      <strong className="block text-xs font-serif font-normal text-editorial-text">
+                        {activeSettings.codTitle || "Накладений платіж (при отриманні)"}
+                      </strong>
+                      <span className="block text-[11px] text-editorial-muted mt-0.5 leading-relaxed font-sans">
+                        {activeSettings.codDesc || "Оплата у відділенні Нової Пошти після огляду та примірки."}
+                      </span>
+                    </div>
+                  </button>
+                )}
 
-                <div className="space-y-1">
-                  <span className="text-[9px] uppercase tracking-wider text-[#8C867E] block font-medium">Номер Картки</span>
-                  <p className="font-mono text-lg tracking-widest text-white">
-                    {cardNumber || "•••• •••• •••• ••••"}
-                  </p>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <div className="space-y-1">
-                    <span className="text-[9px] uppercase tracking-wider text-[#8C867E] block font-medium">Власник</span>
-                    <p className="font-mono text-sm uppercase tracking-wider max-w-[200px] truncate text-white">
-                      {cardholder || "CARDHOLDER NAME"}
-                    </p>
-                  </div>
-
-                  <div className="space-y-1 text-right">
-                    <span className="text-[9px] uppercase tracking-wider text-[#8C867E] block font-medium">Дійсна до</span>
-                    <p className="font-mono text-sm text-white">
-                      {cardExpiry || "ММ/РР"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="absolute top-4 right-5 text-xs text-editorial-cream font-bold tracking-widest font-serif">
-                  {getCardBrand()}
-                </div>
+                {activeSettings.ibanEnabled && (
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedPaymentMethod("iban"); setPaymentError(""); }}
+                    className={`p-3.5 border text-left rounded-none flex items-start gap-3.5 transition-all cursor-pointer ${
+                      selectedPaymentMethod === "iban"
+                        ? "border-amber-800 bg-amber-50/20 shadow-xs"
+                        : "border-editorial-border bg-white hover:bg-stone-50/50"
+                    }`}
+                  >
+                    <Building2 className={`w-5 h-5 mt-0.5 ${selectedPaymentMethod === "iban" ? "text-amber-800" : "text-editorial-muted"}`} />
+                    <div className="flex-1">
+                      <strong className="block text-xs font-serif font-normal text-editorial-text">
+                        {activeSettings.ibanTitle || "Оплата за реквізитами (IBAN)"}
+                      </strong>
+                      <span className="block text-[11px] text-editorial-muted mt-0.5 leading-relaxed font-sans">
+                        {activeSettings.ibanDesc || "Наш менеджер надішле рахунок-фактуру ФОП у Viber/Telegram."}
+                      </span>
+                    </div>
+                  </button>
+                )}
               </div>
 
               {paymentError && (
-                <div className="text-xs text-red-600 bg-red-50 border border-red-100 px-3.5 py-2.5 rounded-none">
+                <div className="text-xs text-red-600 bg-red-50 border border-red-100 px-3.5 py-2.5 rounded-none font-sans">
                   {paymentError}
                 </div>
               )}
 
-              {/* Form inputs */}
-              <div className="space-y-3.5">
-                <div>
-                  <label className="text-[10px] uppercase tracking-wider font-semibold text-editorial-muted block mb-1">Номер картки *</label>
-                  <input
-                    type="text"
-                    required
-                    value={cardNumber}
-                    onChange={handleCardNumberChange}
-                    placeholder="4111 2222 3333 4444"
-                    className="w-full bg-white border border-editorial-border focus:border-editorial-dark rounded-none px-3.5 py-2.5 text-sm outline-none transition-all font-mono"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[10px] uppercase tracking-wider font-semibold text-editorial-muted block mb-1">Термін дії *</label>
-                    <input
-                      type="text"
-                      required
-                      value={cardExpiry}
-                      onChange={handleExpiryChange}
-                      placeholder="MM/YY"
-                      className="w-full bg-white border border-editorial-border focus:border-editorial-dark rounded-none px-3.5 py-2.5 text-sm outline-none transition-all font-mono"
-                    />
+              {/* CARD FORM SUB-VIEW */}
+              {selectedPaymentMethod === "card" && (
+                <div className="space-y-4">
+                  {/* Secure badge */}
+                  <div className="bg-editorial-cream border border-editorial-border/80 text-editorial-text p-3 text-xs flex gap-2.5 leading-relaxed">
+                    <ShieldCheck className="w-5 h-5 text-editorial-dark shrink-0 mt-0.5" />
+                    <div>
+                      <strong className="font-serif font-normal text-sm block mb-0.5">Тестовий платіж (LiqPay Sandbox)</strong>
+                      <p className="text-[11px] text-editorial-dark-muted font-sans font-light">Введіть будь-які тестові реквізити картки (16 цифр, термін дії, CVV), щоб симулювати транзакцію.</p>
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="text-[10px] uppercase tracking-wider font-semibold text-editorial-muted block mb-1">Cvv2 код *</label>
-                    <input
-                      type="password"
-                      required
-                      value={cardCvv}
-                      onChange={handleCvvChange}
-                      placeholder="•••"
-                      maxLength={3}
-                      className="w-full bg-white border border-editorial-border focus:border-editorial-dark rounded-none px-3.5 py-2.5 text-sm outline-none transition-all font-mono"
-                    />
+                  {/* Simulated Card GUI mockup */}
+                  <div className="bg-[#2A2420] text-editorial-cream p-5 rounded-none shadow-xl space-y-6 border border-[#3E352F] relative overflow-hidden">
+                    <div className="absolute right-0 bottom-0 translate-x-10 translate-y-10 w-44 h-44 rounded-full bg-white/5 blur-3xl" />
+                    
+                    <div className="flex items-center justify-between">
+                      <span className="text-[9px] uppercase tracking-[0.2em] text-[#8C867E] font-semibold">Симулятор Оплати</span>
+                      <CreditCard className="w-6 h-6 text-editorial-cream" />
+                    </div>
+
+                    <div className="space-y-1">
+                      <span className="text-[9px] uppercase tracking-wider text-[#8C867E] block font-medium">Номер Картки</span>
+                      <p className="font-mono text-lg tracking-widest text-white">
+                        {cardNumber || "•••• •••• •••• ••••"}
+                      </p>
+                    </div>
+
+                    <div className="flex justify-between items-center">
+                      <div className="space-y-1">
+                        <span className="text-[9px] uppercase tracking-wider text-[#8C867E] block font-medium">Власник</span>
+                        <p className="font-mono text-sm uppercase tracking-wider max-w-[200px] truncate text-white">
+                          {cardholder || "CARDHOLDER NAME"}
+                        </p>
+                      </div>
+
+                      <div className="space-y-1 text-right">
+                        <span className="text-[9px] uppercase tracking-wider text-[#8C867E] block font-medium">Дійсна до</span>
+                        <p className="font-mono text-sm text-white">
+                          {cardExpiry || "ММ/РР"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="absolute top-4 right-5 text-xs text-editorial-cream font-bold tracking-widest font-serif">
+                      {getCardBrand()}
+                    </div>
+                  </div>
+
+                  {/* Form inputs */}
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-[10px] uppercase tracking-wider font-semibold text-editorial-muted block mb-1">Номер картки *</label>
+                      <input
+                        type="text"
+                        required
+                        value={cardNumber}
+                        onChange={handleCardNumberChange}
+                        placeholder="4111 2222 3333 4444"
+                        className="w-full bg-white border border-editorial-border focus:border-editorial-dark rounded-none px-3.5 py-2 text-sm outline-none transition-all font-mono"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-[10px] uppercase tracking-wider font-semibold text-editorial-muted block mb-1">Термін дії *</label>
+                        <input
+                          type="text"
+                          required
+                          value={cardExpiry}
+                          onChange={handleExpiryChange}
+                          placeholder="MM/YY"
+                          className="w-full bg-white border border-editorial-border focus:border-editorial-dark rounded-none px-3.5 py-2 text-sm outline-none transition-all font-mono"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] uppercase tracking-wider font-semibold text-editorial-muted block mb-1">Cvv2 код *</label>
+                        <input
+                          type="password"
+                          required
+                          value={cardCvv}
+                          onChange={handleCvvChange}
+                          placeholder="•••"
+                          maxLength={3}
+                          className="w-full bg-white border border-editorial-border focus:border-editorial-dark rounded-none px-3.5 py-2 text-sm outline-none transition-all font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] uppercase tracking-wider font-semibold text-editorial-muted block mb-1">Власник картки *</label>
+                      <input
+                        type="text"
+                        required
+                        value={cardholder}
+                        onChange={(e) => setCardholder(e.target.value)}
+                        placeholder="IVAN KOVALCHUK"
+                        className="w-full bg-white border border-editorial-border focus:border-editorial-dark rounded-none px-3.5 py-2 text-sm outline-none transition-all uppercase font-mono"
+                      />
+                    </div>
                   </div>
                 </div>
+              )}
 
-                <div>
-                  <label className="text-[10px] uppercase tracking-wider font-semibold text-editorial-muted block mb-1">Власник картки (англійською) *</label>
-                  <input
-                    type="text"
-                    required
-                    value={cardholder}
-                    onChange={(e) => setCardholder(e.target.value)}
-                    placeholder="IVAN KOVALCHUK"
-                    className="w-full bg-white border border-editorial-border focus:border-editorial-dark rounded-none px-3.5 py-2.5 text-sm outline-none transition-all uppercase font-mono"
-                  />
+              {/* COD FORM SUB-VIEW */}
+              {selectedPaymentMethod === "cod" && (
+                <div className="bg-amber-50/10 border border-editorial-border/60 p-5 rounded-none space-y-3.5">
+                  <div className="flex items-center gap-2 text-editorial-text">
+                    <Banknote className="w-5 h-5 text-amber-800" />
+                    <span className="font-serif font-normal text-sm">Оплата накладеним платежем</span>
+                  </div>
+                  <p className="text-[11px] text-editorial-dark-muted font-sans font-light leading-relaxed">
+                    Ви оплачуєте замовлення готівкою або карткою безпосередньо при отриманні та огляді виробу у відділенні перевізника.
+                    <br />
+                    <span className="text-amber-900 font-medium">Будь ласка, зверніть увагу:</span> Нова Пошта нараховує додаткову комісію за зворотну доставку коштів за тарифами перевізника (зазвичай це 20 ₴ + 2% від суми переказу).
+                  </p>
                 </div>
-              </div>
+              )}
+
+              {/* IBAN FORM SUB-VIEW */}
+              {selectedPaymentMethod === "iban" && (
+                <div className="bg-amber-50/10 border border-editorial-border/60 p-5 rounded-none space-y-3.5">
+                  <div className="flex items-center gap-2 text-editorial-text">
+                    <Building2 className="w-5 h-5 text-amber-800" />
+                    <span className="font-serif font-normal text-sm">Оплата за офіційними реквізитами (IBAN)</span>
+                  </div>
+                  <p className="text-[11px] text-editorial-dark-muted font-sans font-light leading-relaxed">
+                    Наш менеджер зв'яжеться з вами та надішле офіційні реквізити для оплати на IBAN ФОП у месенджер після перевірки та погодження мірок кравчинею.
+                  </p>
+                  {activeSettings.ibanDetails && (
+                    <div className="p-3 bg-white border border-stone-200 rounded-none">
+                      <span className="text-[9px] uppercase tracking-wider text-editorial-muted block mb-1 font-bold">Орієнтовні реквізити ФОП:</span>
+                      <pre className="text-[10px] text-editorial-text font-mono whitespace-pre-wrap leading-tight">{activeSettings.ibanDetails}</pre>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="border-t border-editorial-border/40 pt-5 flex gap-3 mt-6">
                 <button
@@ -450,8 +619,17 @@ export default function CheckoutModal({
                   type="submit"
                   className="bg-editorial-dark hover:bg-editorial-dark/95 text-white text-xs uppercase tracking-[0.15em] font-bold py-3.5 px-6 rounded-none flex-1 flex items-center justify-center gap-2 transition-colors cursor-pointer font-sans"
                 >
-                  <Lock className="w-3.5 h-3.5 text-editorial-cream" />
-                  Сплатити {(total).toLocaleString("uk-UA")} ₴
+                  {selectedPaymentMethod === "card" ? (
+                    <>
+                      <Lock className="w-3.5 h-3.5 text-editorial-cream" />
+                      Сплатити {(total).toLocaleString("uk-UA")} ₴
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-3.5 h-3.5 text-editorial-cream" />
+                      Підтвердити замовлення
+                    </>
+                  )}
                 </button>
               </div>
             </form>
@@ -473,7 +651,7 @@ export default function CheckoutModal({
               
               <div>
                 <h3 className="text-2xl font-serif text-editorial-text font-normal">Дякуємо за замовлення!</h3>
-                <p className="text-xs uppercase tracking-widest text-emerald-700 font-semibold mt-2.5">Оплата проведена успішно • {createdOrder.orderNumber}</p>
+                <p className="text-xs uppercase tracking-widest text-emerald-700 font-semibold mt-2.5">Замовлення оформлено • {createdOrder.orderNumber}</p>
               </div>
 
               <div className="bg-white border border-editorial-border p-5 rounded-none w-full text-left text-xs space-y-3.5">
@@ -490,23 +668,42 @@ export default function CheckoutModal({
                   <span className="font-semibold text-editorial-text font-sans">{createdOrder.customer.address}</span>
                 </div>
                 <div className="flex justify-between border-b border-editorial-border/30 pb-2">
-                  <span className="text-editorial-muted font-sans font-light">Транзакція:</span>
-                  <span className="font-mono font-medium text-editorial-dark-muted">{createdOrder.paymentDetails?.transactionId}</span>
+                  <span className="text-editorial-muted font-sans font-light">Спосіб оплати:</span>
+                  <span className="font-semibold text-editorial-text font-sans">
+                    {createdOrder.paymentDetails?.method || "Онлайн-оплата"}
+                  </span>
+                </div>
+                <div className="flex justify-between border-b border-editorial-border/30 pb-2">
+                  <span className="text-editorial-muted font-sans font-light">Статус оплати:</span>
+                  <span className="font-semibold text-amber-900 font-sans">
+                    {createdOrder.paymentStatus}
+                  </span>
                 </div>
                 <div className="flex justify-between pt-1">
-                  <span className="font-semibold text-editorial-text uppercase tracking-wider text-[11px] font-sans">Всього Сплачено:</span>
+                  <span className="font-semibold text-editorial-text uppercase tracking-wider text-[11px] font-sans">Всього до сплати:</span>
                   <span className="font-bold text-editorial-dark text-sm font-sans">{createdOrder.total?.toLocaleString("uk-UA")} ₴</span>
                 </div>
               </div>
 
+              {createdOrder.paymentDetails?.ibanDetails && (
+                <div className="bg-amber-50/25 border border-amber-800/40 p-4 rounded-none text-left w-full space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-amber-800" />
+                    <strong className="text-xs font-serif text-editorial-text">Реквізити для оплати IBAN:</strong>
+                  </div>
+                  <pre className="p-3 bg-white border border-stone-200 text-xs font-mono whitespace-pre-wrap rounded-none select-all">{createdOrder.paymentDetails.ibanDetails}</pre>
+                  <p className="text-[10px] text-editorial-muted font-sans font-light">Ви можете скопіювати ці реквізити прямо зараз для здійснення платежу через ваш банківський додаток.</p>
+                </div>
+              )}
+
               <div className="bg-editorial-cream/40 border border-editorial-border p-4 rounded-none text-xs text-editorial-text text-left leading-relaxed w-full">
                 <strong>🧵 Наступні кроки майстерні:</strong>
-                <p className="mt-1 text-editorial-dark-muted font-sans font-light">Наш майстер-швець вже отримав ваші параметри та розпочинає підготовку тканини. Ми зв'яжемося з вами найближчим часом для уточнення деталей, якщо знадобиться. Трекінг-код замовлення: <strong>{createdOrder.orderNumber}</strong>.</p>
+                <p className="mt-1 text-editorial-dark-muted font-sans font-light">Наш майстер-швець вже отримав ваші параметри та замовлення. Ми зв'яжемося з вами найближчим часом для уточнення деталей, якщо знадобиться. Трекінг-код замовлення: <strong>{createdOrder.orderNumber}</strong>.</p>
               </div>
 
               <button
                 onClick={handleFinish}
-                className="w-full bg-editorial-dark hover:bg-editorial-dark/95 text-white font-bold py-4 rounded-none text-xs uppercase tracking-[0.15em] transition-colors cursor-pointer"
+                className="w-full bg-editorial-dark hover:bg-editorial-dark/95 text-white font-bold py-4 rounded-none text-xs uppercase tracking-[0.15em] transition-colors cursor-pointer animate-pulse"
               >
                 Повернутися до каталогу
               </button>

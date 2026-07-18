@@ -19,6 +19,8 @@ import {
   X,
   RefreshCw,
   Lock,
+  Upload,
+  Image as ImageIcon,
 } from "lucide-react";
 import CustomSalesChart from "./CustomSalesChart";
 import * as dbService from "../lib/dbService";
@@ -65,6 +67,16 @@ export default function AdminPanel({ onBackToStore, onSettingsUpdate }: AdminPan
     benefit3Title: "",
     benefit3Desc: "",
     footerText: "",
+    cardPaymentEnabled: true,
+    cardPaymentTitle: "",
+    cardPaymentDesc: "",
+    codEnabled: true,
+    codTitle: "",
+    codDesc: "",
+    ibanEnabled: true,
+    ibanTitle: "",
+    ibanDesc: "",
+    ibanDetails: "",
   });
   const [settingsSaveSuccess, setSettingsSaveSuccess] = useState<string>("");
   const [settingsSaveError, setSettingsSaveError] = useState<string>("");
@@ -84,6 +96,80 @@ export default function AdminPanel({ onBackToStore, onSettingsUpdate }: AdminPan
   });
 
   const [formError, setFormError] = useState<string>("");
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+
+  const processFile = (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      setFormError("Будь ласка, оберіть файл зображення (JPG, PNG, WEBP тощо).");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        // Compress and downscale image to maximum 1000px width/height for fast loading
+        const canvas = document.createElement("canvas");
+        const MAX_WIDTH = 1000;
+        const MAX_HEIGHT = 1000;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressedBase64 = canvas.toDataURL("image/jpeg", 0.78); // 78% quality JPEG for excellent balance
+          setProductForm((prev) => ({ ...prev, image: compressedBase64 }));
+          setFormError("");
+        }
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.onerror = () => {
+      setFormError("Не вдалося прочитати обраний файл.");
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      processFile(file);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      processFile(file);
+    }
+  };
 
   // Fetch initial data
   const fetchData = async () => {
@@ -98,8 +184,9 @@ export default function AdminPanel({ onBackToStore, onSettingsUpdate }: AdminPan
     if (cachedSettings) {
       try {
         const parsed = JSON.parse(cachedSettings);
-        setSettings(parsed);
-        setSettingsForm(parsed);
+        const merged = { ...dbService.DEFAULT_SETTINGS, ...parsed };
+        setSettings(merged);
+        setSettingsForm(merged);
       } catch (e) {}
     }
     if (cachedOrders) {
@@ -662,6 +749,8 @@ export default function AdminPanel({ onBackToStore, onSettingsUpdate }: AdminPan
                                   className={`font-semibold font-sans text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-none border cursor-pointer transition-colors ${
                                     order.paymentStatus === "Оплачено"
                                       ? "bg-editorial-cream text-editorial-dark border-editorial-border hover:bg-white"
+                                      : order.paymentStatus === "При отриманні"
+                                      ? "bg-amber-50 text-amber-800 border-amber-200 hover:bg-white"
                                       : "bg-red-50 text-red-800 border-red-200 hover:bg-white"
                                   }`}
                                   title="Натисніть для зміни статусу оплати"
@@ -669,8 +758,9 @@ export default function AdminPanel({ onBackToStore, onSettingsUpdate }: AdminPan
                                   {order.paymentStatus}
                                 </button>
                                 {order.paymentDetails && (
-                                  <span className="text-editorial-muted block mt-1.5 font-mono text-[9px] uppercase tracking-wider">
-                                    Транз: {order.paymentDetails.transactionId} ({order.paymentDetails.provider})
+                                  <span className="text-editorial-muted block mt-1.5 font-sans text-[9px] uppercase tracking-wider leading-relaxed">
+                                    Спосіб: {order.paymentDetails.method || order.paymentDetails.provider}
+                                    {order.paymentDetails.transactionId && ` (ID: ${order.paymentDetails.transactionId})`}
                                   </span>
                                 )}
                               </div>
@@ -1066,6 +1156,143 @@ export default function AdminPanel({ onBackToStore, onSettingsUpdate }: AdminPan
                     </div>
                   </div>
 
+                  {/* Payment methods section */}
+                  <div className="border-b border-stone-100 pb-5 space-y-4">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-amber-800 font-sans">Способи оплати покупцями</h4>
+                    <p className="text-[11px] text-stone-500 mb-2">Налаштуйте, які типи оплати будуть доступні покупцям під час оформлення замовлення.</p>
+                    
+                    <div className="space-y-4">
+                      {/* 1. Card Payment */}
+                      <div className="p-4 bg-stone-50/50 border border-stone-100 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] uppercase tracking-wider font-bold text-editorial-text">1. Онлайн-оплата карткою (Visa/Mastercard)</span>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={settingsForm.cardPaymentEnabled}
+                              onChange={(e) => setSettingsForm({ ...settingsForm, cardPaymentEnabled: e.target.checked })}
+                              className="sr-only peer"
+                            />
+                            <div className="w-9 h-5 bg-stone-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-800"></div>
+                            <span className="ml-2 text-[10px] font-bold text-stone-700 uppercase">{settingsForm.cardPaymentEnabled ? "Активно" : "Вимкнено"}</span>
+                          </label>
+                        </div>
+                        {settingsForm.cardPaymentEnabled && (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                            <div>
+                              <label className="text-[10px] uppercase tracking-wider font-bold text-editorial-muted block mb-1">Назва способу оплати</label>
+                              <input
+                                type="text"
+                                value={settingsForm.cardPaymentTitle}
+                                onChange={(e) => setSettingsForm({ ...settingsForm, cardPaymentTitle: e.target.value })}
+                                className="w-full bg-white border border-editorial-border rounded-none px-3.5 py-2 text-xs outline-none focus:border-editorial-dark"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[10px] uppercase tracking-wider font-bold text-editorial-muted block mb-1">Короткий опис / Інструкція</label>
+                              <input
+                                type="text"
+                                value={settingsForm.cardPaymentDesc}
+                                onChange={(e) => setSettingsForm({ ...settingsForm, cardPaymentDesc: e.target.value })}
+                                className="w-full bg-white border border-editorial-border rounded-none px-3.5 py-2 text-xs outline-none focus:border-editorial-dark"
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 2. Cash on Delivery (COD) */}
+                      <div className="p-4 bg-stone-50/50 border border-stone-100 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] uppercase tracking-wider font-bold text-editorial-text">2. Накладений платіж (при отриманні)</span>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={settingsForm.codEnabled}
+                              onChange={(e) => setSettingsForm({ ...settingsForm, codEnabled: e.target.checked })}
+                              className="sr-only peer"
+                            />
+                            <div className="w-9 h-5 bg-stone-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-800"></div>
+                            <span className="ml-2 text-[10px] font-bold text-stone-700 uppercase">{settingsForm.codEnabled ? "Активно" : "Вимкнено"}</span>
+                          </label>
+                        </div>
+                        {settingsForm.codEnabled && (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                            <div>
+                              <label className="text-[10px] uppercase tracking-wider font-bold text-editorial-muted block mb-1">Назва способу оплати</label>
+                              <input
+                                type="text"
+                                value={settingsForm.codTitle}
+                                onChange={(e) => setSettingsForm({ ...settingsForm, codTitle: e.target.value })}
+                                className="w-full bg-white border border-editorial-border rounded-none px-3.5 py-2 text-xs outline-none focus:border-editorial-dark"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[10px] uppercase tracking-wider font-bold text-editorial-muted block mb-1">Короткий опис / Інструкція</label>
+                              <input
+                                type="text"
+                                value={settingsForm.codDesc}
+                                onChange={(e) => setSettingsForm({ ...settingsForm, codDesc: e.target.value })}
+                                className="w-full bg-white border border-editorial-border rounded-none px-3.5 py-2 text-xs outline-none focus:border-editorial-dark"
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 3. IBAN Transfer */}
+                      <div className="p-4 bg-stone-50/50 border border-stone-100 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] uppercase tracking-wider font-bold text-editorial-text">3. Оплата за реквізитами (IBAN)</span>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={settingsForm.ibanEnabled}
+                              onChange={(e) => setSettingsForm({ ...settingsForm, ibanEnabled: e.target.checked })}
+                              className="sr-only peer"
+                            />
+                            <div className="w-9 h-5 bg-stone-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-800"></div>
+                            <span className="ml-2 text-[10px] font-bold text-stone-700 uppercase">{settingsForm.ibanEnabled ? "Активно" : "Вимкнено"}</span>
+                          </label>
+                        </div>
+                        {settingsForm.ibanEnabled && (
+                          <div className="space-y-3 pt-2">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label className="text-[10px] uppercase tracking-wider font-bold text-editorial-muted block mb-1">Назва способу оплати</label>
+                                <input
+                                  type="text"
+                                  value={settingsForm.ibanTitle}
+                                  onChange={(e) => setSettingsForm({ ...settingsForm, ibanTitle: e.target.value })}
+                                  className="w-full bg-white border border-editorial-border rounded-none px-3.5 py-2 text-xs outline-none focus:border-editorial-dark"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[10px] uppercase tracking-wider font-bold text-editorial-muted block mb-1">Короткий опис / Інструкція</label>
+                                <input
+                                  type="text"
+                                  value={settingsForm.ibanDesc}
+                                  onChange={(e) => setSettingsForm({ ...settingsForm, ibanDesc: e.target.value })}
+                                  className="w-full bg-white border border-editorial-border rounded-none px-3.5 py-2 text-xs outline-none focus:border-editorial-dark"
+                                />
+                              </div>
+                            </div>
+                            <div>
+                              <label className="text-[10px] uppercase tracking-wider font-bold text-editorial-muted block mb-1">Реквізити підприємства (IBAN, назва ФОП, призначення платежу)</label>
+                              <textarea
+                                rows={2}
+                                value={settingsForm.ibanDetails}
+                                onChange={(e) => setSettingsForm({ ...settingsForm, ibanDetails: e.target.value })}
+                                className="w-full bg-white border border-editorial-border rounded-none px-3.5 py-2 text-xs outline-none focus:border-editorial-dark font-mono"
+                                placeholder="UA 89 300024 000002600123456789 ФОП Ковальчук..."
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Footer section text */}
                   <div className="space-y-3">
                     <h4 className="text-xs font-bold uppercase tracking-wider text-amber-800 font-sans">Низ сайту (Footer)</h4>
@@ -1231,18 +1458,61 @@ export default function AdminPanel({ onBackToStore, onSettingsUpdate }: AdminPan
               </div>
 
               <div>
-                <label className="text-[10px] uppercase tracking-wider font-bold text-editorial-muted block mb-1.5 font-sans">Адреса зображення виробу (URL) *</label>
-                <input
-                  type="text"
-                  required
-                  value={productForm.image}
-                  onChange={(e) => setProductForm({ ...productForm, image: e.target.value })}
-                  placeholder="напр. https://images.unsplash.com/..."
-                  className="w-full bg-white border border-editorial-border rounded-none px-3.5 py-2.5 text-xs outline-none transition-all focus:border-editorial-dark"
-                />
-                <p className="text-[10px] text-editorial-muted mt-1 font-sans font-light">
-                  Ви можете знайти красиве посилання на Unsplash або використати будь-яке зображення.
-                </p>
+                <label className="text-[10px] uppercase tracking-wider font-bold text-editorial-muted block mb-1.5 font-sans">Зображення виробу (Завантажити файл) *</label>
+                
+                {productForm.image ? (
+                  <div className="relative border border-editorial-border p-3.5 bg-white flex items-center gap-4 group">
+                    <img
+                      src={productForm.image}
+                      alt="Прев'ю виробу"
+                      className="w-20 h-20 object-cover border border-editorial-border/40 shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-800 block mb-1">Файл завантажено успішно</span>
+                      <p className="text-[11px] text-editorial-muted truncate font-sans font-light">Стиснуто та оптимізовано для швидкого відображення</p>
+                      
+                      <button
+                        type="button"
+                        onClick={() => setProductForm((prev) => ({ ...prev, image: "" }))}
+                        className="mt-2 text-[10px] uppercase tracking-wider font-bold text-red-700 hover:text-red-950 flex items-center gap-1 transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        Видалити фото
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    onClick={() => document.getElementById("product-file-upload")?.click()}
+                    className={`border-2 border-dashed rounded-none p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center space-y-2.5 ${
+                      isDragging
+                        ? "border-amber-800 bg-amber-50/10 scale-[0.99]"
+                        : "border-editorial-border bg-[#FCFAF6] hover:bg-white hover:border-editorial-dark"
+                    }`}
+                  >
+                    <input
+                      id="product-file-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
+                    <div className="bg-editorial-cream text-editorial-dark p-2.5 rounded-none border border-editorial-border/40">
+                      <Upload className="w-5 h-5 shrink-0" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-serif font-normal text-editorial-text block">
+                        Перетягніть фото сюди або <span className="underline font-medium text-amber-800">натисніть</span> для вибору
+                      </span>
+                      <span className="text-[10px] text-editorial-muted font-sans font-light block mt-1">
+                        Підтримуються формати JPG, PNG, WEBP. Фото стискається автоматично для миттєвого завантаження.
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="border-t border-editorial-border/60 pt-5 flex gap-3 mt-6 font-sans">

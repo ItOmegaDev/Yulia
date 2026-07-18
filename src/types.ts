@@ -72,5 +72,15 @@ export interface SiteSettings {
   benefit3Title: string;
   benefit3Desc: string;
   footerText: string;
+  cardPaymentEnabled: boolean;
+  cardPaymentTitle: string;
+  cardPaymentDesc: string;
+  codEnabled: boolean;
+  codTitle: string;
+  codDesc: string;
+  ibanEnabled: boolean;
+  ibanTitle: string;
+  ibanDesc: string;
+  ibanDetails: string;
 }
 

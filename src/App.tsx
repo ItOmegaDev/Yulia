@@ -87,7 +87,10 @@ export default function App() {
       try { setProducts(JSON.parse(cachedProducts)); } catch (e) {}
     }
     if (cachedSettings) {
-      try { setSettings(JSON.parse(cachedSettings)); } catch (e) {}
+      try {
+        const parsed = JSON.parse(cachedSettings);
+        setSettings({ ...dbService.DEFAULT_SETTINGS, ...parsed });
+      } catch (e) {}
     }
     
     if (cachedProducts || cachedSettings) {
@@ -581,6 +584,7 @@ export default function App() {
           total={cartTotal}
           onClose={() => setIsCheckoutOpen(false)}
           onOrderSuccess={handleOrderSuccess}
+          settings={settings}
         />
       )}
     </div>
