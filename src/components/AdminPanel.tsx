@@ -25,9 +25,10 @@ import * as dbService from "../lib/dbService";
 
 interface AdminPanelProps {
   onBackToStore: () => void;
+  onSettingsUpdate?: (settings: SiteSettings) => void;
 }
 
-export default function AdminPanel({ onBackToStore }: AdminPanelProps) {
+export default function AdminPanel({ onBackToStore, onSettingsUpdate }: AdminPanelProps) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [activeTab, setActiveTab] = useState<"dashboard" | "orders" | "catalog" | "firebase" | "settings">("dashboard");
@@ -86,15 +87,40 @@ export default function AdminPanel({ onBackToStore }: AdminPanelProps) {
 
   // Fetch initial data
   const fetchData = async () => {
-    setLoading(true);
+    // Instant cache load for lightning fast rendering
+    const cachedProducts = localStorage.getItem("nytka_products_cache") || localStorage.getItem("nytka_local_products");
+    const cachedSettings = localStorage.getItem("nytka_site_settings_cache") || localStorage.getItem("nytka_site_settings");
+    const cachedOrders = localStorage.getItem("nytka_local_orders");
+
+    if (cachedProducts) {
+      try { setProducts(JSON.parse(cachedProducts)); } catch (e) {}
+    }
+    if (cachedSettings) {
+      try {
+        const parsed = JSON.parse(cachedSettings);
+        setSettings(parsed);
+        setSettingsForm(parsed);
+      } catch (e) {}
+    }
+    if (cachedOrders) {
+      try { setOrders(JSON.parse(cachedOrders)); } catch (e) {}
+    }
+
+    if (cachedProducts || cachedSettings || cachedOrders) {
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
     try {
-      const ordersData = await dbService.getOrders();
+      // Parallel loading for maximum speed
+      const [ordersData, productsData, settingsData] = await Promise.all([
+        dbService.getOrders(),
+        dbService.getProducts(),
+        dbService.getSettings()
+      ]);
       setOrders(ordersData);
-
-      const productsData = await dbService.getProducts();
       setProducts(productsData);
-
-      const settingsData = await dbService.getSettings();
       setSettings(settingsData);
       setSettingsForm(settingsData);
     } catch (err) {
@@ -111,6 +137,9 @@ export default function AdminPanel({ onBackToStore }: AdminPanelProps) {
     try {
       const saved = await dbService.saveSettings(settingsForm);
       setSettings(saved);
+      if (onSettingsUpdate) {
+        onSettingsUpdate(saved);
+      }
       setSettingsSaveSuccess("✓ Налаштування сайту успішно збережено!");
       setTimeout(() => setSettingsSaveSuccess(""), 5000);
     } catch (err: any) {
@@ -928,21 +957,6 @@ export default function AdminPanel({ onBackToStore }: AdminPanelProps) {
                 )}
 
                 <form onSubmit={handleSettingsSubmit} className="space-y-6">
-                  {/* Announcement banner text */}
-                  <div className="border-b border-stone-100 pb-5 space-y-3">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-amber-800 font-sans">Верхній банер оголошень</h4>
-                    <div>
-                      <label className="text-[10px] uppercase tracking-wider font-bold text-editorial-muted block mb-1">Текст банера</label>
-                      <input
-                        type="text"
-                        value={settingsForm.announcement}
-                        onChange={(e) => setSettingsForm({ ...settingsForm, announcement: e.target.value })}
-                        className="w-full bg-stone-50 border border-editorial-border rounded-none px-3.5 py-2.5 text-xs outline-none transition-all focus:border-editorial-dark focus:bg-white"
-                        placeholder="Безкоштовне коригування лекал під ваші індивідуальні мірки для кожного замовлення"
-                      />
-                    </div>
-                  </div>
-
                   {/* Hero banner text */}
                   <div className="border-b border-stone-100 pb-5 space-y-4">
                     <h4 className="text-xs font-bold uppercase tracking-wider text-amber-800 font-sans">Головний екран (Hero Section)</h4>

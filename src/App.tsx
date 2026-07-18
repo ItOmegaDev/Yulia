@@ -79,10 +79,28 @@ export default function App() {
 
   // Fetch products and settings from dbService on load
   const loadProducts = async () => {
+    // Instant cache load for lightning-fast (0ms) visual rendering
+    const cachedProducts = localStorage.getItem("nytka_products_cache") || localStorage.getItem("nytka_local_products");
+    const cachedSettings = localStorage.getItem("nytka_site_settings_cache") || localStorage.getItem("nytka_site_settings");
+    
+    if (cachedProducts) {
+      try { setProducts(JSON.parse(cachedProducts)); } catch (e) {}
+    }
+    if (cachedSettings) {
+      try { setSettings(JSON.parse(cachedSettings)); } catch (e) {}
+    }
+    
+    if (cachedProducts || cachedSettings) {
+      setLoading(false);
+    }
+
     try {
-      const data = await dbService.getProducts();
+      // Parallelized data fetching
+      const [data, siteSettings] = await Promise.all([
+        dbService.getProducts(),
+        dbService.getSettings()
+      ]);
       setProducts(data);
-      const siteSettings = await dbService.getSettings();
       setSettings(siteSettings);
     } catch (err) {
       console.error("Error fetching data:", err);
@@ -290,7 +308,12 @@ export default function App() {
       );
     }
 
-    return <AdminPanel onBackToStore={() => toggleView("shop")} />;
+    return (
+      <AdminPanel 
+        onBackToStore={() => toggleView("shop")} 
+        onSettingsUpdate={(newSettings) => setSettings(newSettings)}
+      />
+    );
   }
 
   return (
