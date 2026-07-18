@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { motion } from "motion/react";
 import { Product, CartItem, SiteSettings } from "./types";
 import ProductCard from "./components/ProductCard";
 import ProductDetailsModal from "./components/ProductDetailsModal";
@@ -354,18 +355,20 @@ export default function App() {
         {/* Navigation actions */}
         <div className="flex items-center gap-3.5">
           {/* Cart Icon with count badge */}
-          <button
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => setIsCartOpen(true)}
-            className="relative bg-stone-900 hover:bg-stone-800 text-white p-2.5 px-4 rounded-xl flex items-center gap-2 transition-all shadow-sm hover:shadow-md cursor-pointer"
+            className="relative bg-stone-900 hover:bg-stone-800 text-white p-2.5 px-4 rounded-xl flex items-center gap-2 transition-all shadow-sm hover:shadow-md cursor-pointer text-xs font-bold"
           >
             <ShoppingBag className="w-4 h-4" />
-            <span className="text-xs font-bold hidden sm:inline">Кошик</span>
+            <span className="hidden sm:inline">Кошик</span>
             {cartCount > 0 && (
               <span className="absolute -top-1.5 -right-1.5 bg-amber-600 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-white shadow-xs animate-bounce">
                 {cartCount}
               </span>
             )}
-          </button>
+          </motion.button>
         </div>
       </header>
 
@@ -434,7 +437,9 @@ export default function App() {
               { id: "текстиль", label: "Домашній текстиль" },
               { id: "аксесуари", label: "Аксесуари та декор" },
             ].map((tab) => (
-              <button
+              <motion.button
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
                 key={tab.id}
                 onClick={() => setCategoryFilter(tab.id)}
                 className={`px-4 py-2 rounded-xl text-xs font-bold tracking-wide transition-all cursor-pointer whitespace-nowrap uppercase ${
@@ -444,7 +449,7 @@ export default function App() {
                 }`}
               >
                 {tab.label}
-              </button>
+              </motion.button>
             ))}
           </div>
 

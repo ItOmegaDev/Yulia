@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { motion } from "motion/react";
 import { Order, Product, SiteSettings } from "../types";
 import {
   TrendingUp,
@@ -97,6 +98,7 @@ export default function AdminPanel({ onBackToStore, onSettingsUpdate }: AdminPan
 
   const [formError, setFormError] = useState<string>("");
   const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [imageInputMethod, setImageInputMethod] = useState<"upload" | "url">("upload");
 
   const processFile = (file: File) => {
     if (!file.type.startsWith("image/")) {
@@ -276,6 +278,7 @@ export default function AdminPanel({ onBackToStore, onSettingsUpdate }: AdminPan
   const openProductModal = (prod: Product | null = null) => {
     setEditingProduct(prod);
     if (prod) {
+      setImageInputMethod(prod.image.startsWith("data:") ? "upload" : "url");
       setProductForm({
         name: prod.name,
         description: prod.description,
@@ -287,6 +290,7 @@ export default function AdminPanel({ onBackToStore, onSettingsUpdate }: AdminPan
         sizes: prod.sizes.join(", "),
       });
     } else {
+      setImageInputMethod("upload");
       setProductForm({
         name: "",
         description: "",
@@ -307,7 +311,7 @@ export default function AdminPanel({ onBackToStore, onSettingsUpdate }: AdminPan
     e.preventDefault();
     setFormError("");
 
-    if (!productForm.name || !productForm.description || !productForm.price || !productForm.image || !productForm.materials) {
+    if (!productForm.name || !productForm.description || !productForm.price || !productForm.materials) {
       setFormError("Будь ласка, заповніть усі обов'язкові поля.");
       return;
     }
@@ -318,12 +322,15 @@ export default function AdminPanel({ onBackToStore, onSettingsUpdate }: AdminPan
       return;
     }
 
+    const defaultImage = "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=800&q=80";
+    const finalImage = productForm.image.trim() || defaultImage;
+
     const payload: Omit<Product, "id"> = {
       name: productForm.name,
       description: productForm.description,
       price: priceNum,
       category: productForm.category,
-      image: productForm.image,
+      image: finalImage,
       materials: productForm.materials,
       craftTime: productForm.craftTime,
       sizes: productForm.sizes.split(",").map((s) => s.trim()).filter(Boolean),
@@ -1458,8 +1465,34 @@ export default function AdminPanel({ onBackToStore, onSettingsUpdate }: AdminPan
               </div>
 
               <div>
-                <label className="text-[10px] uppercase tracking-wider font-bold text-editorial-muted block mb-1.5 font-sans">Зображення виробу (Завантажити файл) *</label>
+                <label className="text-[10px] uppercase tracking-wider font-bold text-editorial-muted block mb-1.5 font-sans">Зображення виробу *</label>
                 
+                {/* Mode Selector */}
+                <div className="flex border border-editorial-border mb-3 font-sans overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setImageInputMethod("upload")}
+                    className={`flex-1 py-1.5 text-[10px] uppercase tracking-wider font-bold transition-all cursor-pointer ${
+                      imageInputMethod === "upload"
+                        ? "bg-editorial-dark text-white"
+                        : "bg-white hover:bg-[#F5F2EB] text-editorial-muted"
+                    }`}
+                  >
+                    Завантажити файл
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImageInputMethod("url")}
+                    className={`flex-1 py-1.5 text-[10px] uppercase tracking-wider font-bold transition-all cursor-pointer ${
+                      imageInputMethod === "url"
+                        ? "bg-editorial-dark text-white"
+                        : "bg-white hover:bg-[#F5F2EB] text-editorial-muted"
+                    }`}
+                  >
+                    Вказати URL-посилання
+                  </button>
+                </div>
+
                 {productForm.image ? (
                   <div className="relative border border-editorial-border p-3.5 bg-white flex items-center gap-4 group">
                     <img
@@ -1468,8 +1501,10 @@ export default function AdminPanel({ onBackToStore, onSettingsUpdate }: AdminPan
                       className="w-20 h-20 object-cover border border-editorial-border/40 shrink-0"
                     />
                     <div className="flex-1 min-w-0">
-                      <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-800 block mb-1">Файл завантажено успішно</span>
-                      <p className="text-[11px] text-editorial-muted truncate font-sans font-light">Стиснуто та оптимізовано для швидкого відображення</p>
+                      <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-800 block mb-1">Зображення успішно підключено</span>
+                      <p className="text-[11px] text-editorial-muted truncate font-sans font-light">
+                        {productForm.image.startsWith("data:") ? "Стиснутий файл завантажено" : "Використовується зовнішнє URL-посилання"}
+                      </p>
                       
                       <button
                         type="button"
@@ -1477,58 +1512,78 @@ export default function AdminPanel({ onBackToStore, onSettingsUpdate }: AdminPan
                         className="mt-2 text-[10px] uppercase tracking-wider font-bold text-red-700 hover:text-red-950 flex items-center gap-1 transition-colors cursor-pointer"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
-                        Видалити фото
+                        Очистити зображення
                       </button>
                     </div>
                   </div>
-                ) : (
-                  <div
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
-                    onClick={() => document.getElementById("product-file-upload")?.click()}
-                    className={`border-2 border-dashed rounded-none p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center space-y-2.5 ${
-                      isDragging
-                        ? "border-amber-800 bg-amber-50/10 scale-[0.99]"
-                        : "border-editorial-border bg-[#FCFAF6] hover:bg-white hover:border-editorial-dark"
-                    }`}
-                  >
+                ) : imageInputMethod === "upload" ? (
+                  <div className="space-y-2">
                     <input
                       id="product-file-upload"
                       type="file"
                       accept="image/*"
                       onChange={handleFileChange}
+                      onClick={(e) => e.stopPropagation()}
                       className="hidden"
                     />
-                    <div className="bg-editorial-cream text-editorial-dark p-2.5 rounded-none border border-editorial-border/40">
-                      <Upload className="w-5 h-5 shrink-0" />
+                    <div
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                      onClick={() => document.getElementById("product-file-upload")?.click()}
+                      className={`border-2 border-dashed rounded-none p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center space-y-2.5 ${
+                        isDragging
+                          ? "border-amber-800 bg-amber-50/10 scale-[0.99]"
+                          : "border-editorial-border bg-[#FCFAF6] hover:bg-white hover:border-editorial-dark"
+                      }`}
+                    >
+                      <div className="bg-editorial-cream text-editorial-dark p-2.5 rounded-none border border-editorial-border/40">
+                        <Upload className="w-5 h-5 shrink-0" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-serif font-normal text-editorial-text block">
+                          Перетягніть фото сюди або <span className="underline font-medium text-amber-800">натисніть</span> для вибору
+                        </span>
+                        <span className="text-[10px] text-editorial-muted font-sans font-light block mt-1">
+                          Підтримуються формати JPG, PNG, WEBP. Фото стискається автоматично для миттєвого завантаження.
+                        </span>
+                      </div>
                     </div>
-                    <div>
-                      <span className="text-xs font-serif font-normal text-editorial-text block">
-                        Перетягніть фото сюди або <span className="underline font-medium text-amber-800">натисніть</span> для вибору
-                      </span>
-                      <span className="text-[10px] text-editorial-muted font-sans font-light block mt-1">
-                        Підтримуються формати JPG, PNG, WEBP. Фото стискається автоматично для миттєвого завантаження.
-                      </span>
-                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <input
+                      type="text"
+                      value={productForm.image}
+                      onChange={(e) => setProductForm({ ...productForm, image: e.target.value })}
+                      placeholder="напр. https://images.unsplash.com/photo-..."
+                      className="w-full bg-white border border-editorial-border rounded-none px-3.5 py-2.5 text-xs outline-none transition-all focus:border-editorial-dark"
+                    />
+                    <p className="text-[10px] text-editorial-muted mt-1 font-sans font-light">
+                      Вставте посилання на будь-яке фото з Unsplash чи іншого сайту.
+                    </p>
                   </div>
                 )}
               </div>
 
               <div className="border-t border-editorial-border/60 pt-5 flex gap-3 mt-6 font-sans">
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   type="button"
                   onClick={() => setIsProductModalOpen(false)}
                   className="bg-white hover:bg-[#F5F2EB] border border-editorial-border text-editorial-text font-bold px-4 py-3 rounded-none text-[10px] uppercase tracking-wider cursor-pointer transition-colors"
                 >
                   Скасувати
-                </button>
-                <button
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   type="submit"
                   className="bg-editorial-dark hover:bg-editorial-dark/95 text-white text-[10px] uppercase tracking-widest font-bold py-3 px-6 rounded-none flex-1 cursor-pointer transition-colors"
                 >
                   Зберегти зміни
-                </button>
+                </motion.button>
               </div>
             </form>
           </div>

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Product, Measurements, CartItem } from "../types";
 import { X, Info, Scissors, Sparkles, Check, HelpCircle } from "lucide-react";
+import { motion } from "motion/react";
 
 interface ProductDetailsModalProps {
   product: Product;
@@ -110,12 +111,14 @@ export default function ProductDetailsModal({
 
         {/* Right Side: Details Form */}
         <div className="md:w-7/12 p-6 md:p-8 overflow-y-auto flex flex-col justify-between">
-          <button
+          <motion.button
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.92 }}
             onClick={onClose}
             className="absolute top-4 right-4 bg-white/90 hover:bg-white text-editorial-text p-2 rounded-none border border-editorial-border shadow-xs transition-colors z-10 cursor-pointer"
           >
             <X className="w-4 h-4" />
-          </button>
+          </motion.button>
 
           <div>
             <div className="hidden md:block">
@@ -270,7 +273,9 @@ export default function ProductDetailsModal({
           </div>
 
           <div className="mt-6 border-t border-editorial-border/40 pt-5">
-            <button
+            <motion.button
+              whileHover={addedSuccess ? {} : { scale: 1.02 }}
+              whileTap={addedSuccess ? {} : { scale: 0.98 }}
               onClick={handleAdd}
               disabled={addedSuccess}
               className={`w-full py-4 px-6 rounded-none font-bold text-xs uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 cursor-pointer ${
@@ -290,7 +295,7 @@ export default function ProductDetailsModal({
                   Додати виріб у кошик • {product.price.toLocaleString("uk-UA")} ₴
                 </>
               )}
-            </button>
+            </motion.button>
           </div>
         </div>
       </div>

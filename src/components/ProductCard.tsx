@@ -1,6 +1,7 @@
 import React from "react";
 import { Product } from "../types";
 import { Clock, Star, Sparkles, Scissors } from "lucide-react";
+import { motion } from "motion/react";
 
 interface ProductCardProps {
   key?: any;
@@ -61,12 +62,14 @@ export default function ProductCard({ product, onViewDetails }: ProductCardProps
               <span className="text-lg font-bold text-editorial-text font-sans">{product.price.toLocaleString("uk-UA")} ₴</span>
             </div>
             
-            <button
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => onViewDetails(product)}
-              className="bg-editorial-dark hover:bg-editorial-dark/90 text-white text-[10px] uppercase tracking-[0.2em] px-5 py-3 rounded-none transition-colors duration-200 flex items-center gap-1 cursor-pointer font-sans font-semibold"
+              className="bg-editorial-dark hover:bg-stone-800 text-white text-[10px] uppercase tracking-[0.2em] px-5 py-3 rounded-none transition-colors duration-200 flex items-center gap-1 cursor-pointer font-sans font-semibold shadow-xs"
             >
               Замовити
-            </button>
+            </motion.button>
           </div>
         </div>
       </div>
