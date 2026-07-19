@@ -159,11 +159,6 @@ export async function clearAllDatabase(): Promise<boolean> {
 }
 
 export async function getProducts(): Promise<Product[]> {
-  if (localStorage.getItem("nytka_clean_slate_v5") !== "true") {
-    await clearAllDatabase();
-    return [];
-  }
-
   if (firestoreDb) {
     try {
       const q = collection(firestoreDb, "products");
@@ -436,7 +431,7 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   benefit3Title: "Супровід кравчині",
   benefit3Desc: "Після оформлення замовлення наш майстер-швець особисто контролює етапи підготовки та зв'яжеться з вами за потреби для підтвердження обхватів.",
   footerText: "Україна, м. Київ • Екологічний пошив одягу та предметів побуту за вашими власними мірками.",
-  cardPaymentEnabled: true,
+  cardPaymentEnabled: false,
   cardPaymentTitle: "Онлайн-оплата карткою",
   cardPaymentDesc: "Швидкий платіж Visa/Mastercard (через LiqPay Sandbox).",
   codEnabled: true,
