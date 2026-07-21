@@ -282,31 +282,31 @@ export default function App() {
   if (view === "admin") {
     if (!isAdminAuthenticated) {
       return (
-        <div className="min-h-screen bg-stone-50 flex items-center justify-center p-6 text-stone-900 font-sans selection:bg-amber-100 selection:text-amber-900">
-          <div className="w-full max-w-md bg-white border border-stone-200 p-8 shadow-xl space-y-6 rounded-3xl">
-            <div className="text-center space-y-2">
-              <div className="bg-amber-800 text-white p-3.5 rounded-full inline-block mx-auto shadow-xs">
-                <Scissors className="w-6 h-6" />
+        <div className="min-h-screen bg-[#F5F2EB] flex items-center justify-center p-6 text-editorial-text font-sans selection:bg-editorial-cream selection:text-editorial-dark">
+          <div className="w-full max-w-md bg-white border border-editorial-border p-8 shadow-xs space-y-6 rounded-none">
+            <div className="text-center space-y-2.5">
+              <div className="bg-editorial-dark text-[#F5F2EB] p-3 border border-[#3E352F] inline-block mx-auto rounded-none">
+                <Scissors className="w-5 h-5" />
               </div>
-              <h2 className="text-xl font-serif font-bold text-stone-800">Вхід в адмін-панель</h2>
-              <p className="text-xs text-stone-500 leading-relaxed">
-                Майстерня Шовк. Будь ласка, введіть пароль для керування каталогом та замовленнями.
+              <h2 className="text-2xl font-serif font-normal text-editorial-text tracking-tight">Вхід в панель керування</h2>
+              <p className="text-[11px] text-editorial-muted leading-relaxed font-sans uppercase tracking-widest font-medium">
+                Майстерня • Вхід для кравців та адміністратора
               </p>
             </div>
 
             <form onSubmit={handlePasswordSubmit} className="space-y-4">
               <div>
-                <label className="block text-[10px] uppercase font-bold text-stone-500 mb-1.5 tracking-wider">Пароль доступу</label>
+                <label className="block text-[10px] uppercase font-bold text-editorial-muted mb-1.5 tracking-wider">Пароль доступу</label>
                 <input
                   type="password"
                   value={passwordInput}
                   onChange={(e) => setPasswordInput(e.target.value)}
-                  placeholder="Введіть пароль"
-                  className="w-full bg-stone-50 border border-stone-200 focus:border-amber-700 rounded-xl px-4 py-2.5 outline-none text-sm transition-all focus:ring-2 focus:ring-amber-100 font-sans"
+                  placeholder="Введіть ваш пароль"
+                  className="w-full bg-[#F5F2EB] border border-editorial-border focus:border-editorial-dark rounded-none px-4 py-3 outline-none text-sm transition-all focus:ring-1 focus:ring-editorial-cream font-sans"
                   autoFocus
                 />
                 {passwordError && (
-                  <p className="text-red-600 text-[11px] mt-1.5 font-semibold">
+                  <p className="text-red-700 text-[11px] mt-1.5 font-sans font-semibold">
                     {passwordError}
                   </p>
                 )}
@@ -314,16 +314,16 @@ export default function App() {
 
               <button
                 type="submit"
-                className="w-full bg-stone-900 hover:bg-amber-900 text-white text-xs uppercase tracking-widest font-bold py-3.5 rounded-xl cursor-pointer transition-colors shadow-xs hover:shadow-md"
+                className="w-full bg-editorial-dark hover:bg-editorial-dark/95 text-white text-xs uppercase tracking-widest font-bold py-4 rounded-none cursor-pointer transition-colors border border-[#3E352F]"
               >
-                Увійти
+                Увійти до панелі
               </button>
             </form>
 
-            <div className="border-t border-stone-100 pt-4 text-center">
+            <div className="border-t border-editorial-border/60 pt-4 text-center">
               <button
                 onClick={() => toggleView("shop")}
-                className="text-stone-500 hover:text-stone-800 text-xs hover:underline cursor-pointer"
+                className="text-editorial-muted hover:text-editorial-text text-xs uppercase tracking-wider font-semibold font-sans cursor-pointer transition-colors"
               >
                 ← Повернутися до магазину
               </button>

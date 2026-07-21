@@ -159,6 +159,7 @@ export async function clearAllDatabase(): Promise<boolean> {
 }
 
 export async function getProducts(): Promise<Product[]> {
+  const local = getLocalProducts();
   if (firestoreDb) {
     try {
       const q = collection(firestoreDb, "products");
@@ -167,13 +168,35 @@ export async function getProducts(): Promise<Product[]> {
       querySnapshot.forEach((docSnap) => {
         list.push({ id: docSnap.id, ...docSnap.data() } as Product);
       });
+      
+      // If Firestore is empty but we have local products, let's automatically seed Firestore!
+      if (list.length === 0 && local.length > 0) {
+        console.log("Firestore is empty, seeding with local products to prevent data loss...");
+        for (const prod of local) {
+          await setDoc(doc(firestoreDb, "products", prod.id), {
+            name: prod.name,
+            description: prod.description,
+            price: Number(prod.price),
+            category: prod.category,
+            image: prod.image,
+            sizes: prod.sizes,
+            materials: prod.materials,
+            craftTime: prod.craftTime,
+            featured: Boolean(prod.featured),
+            rating: Number(prod.rating),
+            reviews: Number(prod.reviews),
+          });
+          list.push(prod);
+        }
+      }
+
       localStorage.setItem("nytka_products_cache", JSON.stringify(list));
+      saveLocalProducts(list);
       return list;
     } catch (err) {
       console.error("Firestore getProducts error, falling back to local:", err);
     }
   }
-  const local = getLocalProducts();
   localStorage.setItem("nytka_products_cache", JSON.stringify(local));
   return local;
 }
@@ -306,6 +329,7 @@ export async function deleteProduct(id: string): Promise<boolean> {
 }
 
 export async function getOrders(): Promise<Order[]> {
+  const local = getLocalOrders();
   if (firestoreDb) {
     try {
       const q = collection(firestoreDb, "orders");
@@ -314,14 +338,25 @@ export async function getOrders(): Promise<Order[]> {
       querySnapshot.forEach((docSnap) => {
         list.push({ id: docSnap.id, ...docSnap.data() } as Order);
       });
+
+      // If Firestore is empty but we have local orders, let's automatically seed Firestore!
+      if (list.length === 0 && local.length > 0) {
+        console.log("Firestore orders empty, seeding with local orders...");
+        for (const ord of local) {
+          await setDoc(doc(firestoreDb, "orders", ord.id), ord);
+          list.push(ord);
+        }
+      }
+
       // Sort orders descending by date
       list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      saveLocalOrders(list);
       return list;
     } catch (err) {
       console.error("Firestore getOrders error, falling back to local:", err);
     }
   }
-  return getLocalOrders();
+  return local;
 }
 
 export async function createOrder(orderData: any): Promise<Order> {
@@ -444,6 +479,17 @@ export const DEFAULT_SETTINGS: SiteSettings = {
 };
 
 export async function getSettings(): Promise<SiteSettings> {
+  const saved = localStorage.getItem("nytka_site_settings") || localStorage.getItem("nytka_site_settings_cache");
+  let localSettings = DEFAULT_SETTINGS;
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      localSettings = { ...DEFAULT_SETTINGS, ...parsed };
+    } catch {
+      // ignore
+    }
+  }
+
   if (firestoreDb) {
     try {
       const docSnap = await getDoc(doc(firestoreDb, "settings", "site"));
@@ -452,21 +498,17 @@ export async function getSettings(): Promise<SiteSettings> {
         const merged = { ...DEFAULT_SETTINGS, ...data };
         localStorage.setItem("nytka_site_settings_cache", JSON.stringify(merged));
         return merged;
+      } else {
+        // Document doesn't exist in Firestore yet, so seed it with our localSettings!
+        await setDoc(doc(firestoreDb, "settings", "site"), localSettings);
+        localStorage.setItem("nytka_site_settings_cache", JSON.stringify(localSettings));
+        return localSettings;
       }
     } catch (err) {
       console.error("Firestore getSettings error:", err);
     }
   }
-  const saved = localStorage.getItem("nytka_site_settings") || localStorage.getItem("nytka_site_settings_cache");
-  if (saved) {
-    try {
-      const parsed = JSON.parse(saved);
-      return { ...DEFAULT_SETTINGS, ...parsed };
-    } catch {
-      // ignore
-    }
-  }
-  return DEFAULT_SETTINGS;
+  return localSettings;
 }
 
 export async function saveSettings(settings: SiteSettings): Promise<SiteSettings> {

@@ -28,6 +28,7 @@ export default function CheckoutModal({
 
   // Find first enabled payment method
   const getInitialPaymentMethod = () => {
+    if (activeSettings.cardPaymentEnabled) return "card";
     if (activeSettings.codEnabled) return "cod";
     if (activeSettings.ibanEnabled) return "iban";
     return "cod"; // fallback
@@ -394,6 +395,27 @@ export default function CheckoutModal({
 
               {/* Dynamic Payment Method Selection List */}
               <div className="grid grid-cols-1 gap-2.5 mb-4">
+                {activeSettings.cardPaymentEnabled && (
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedPaymentMethod("card"); setPaymentError(""); }}
+                    className={`p-3.5 border text-left rounded-none flex items-start gap-3.5 transition-all cursor-pointer ${
+                      selectedPaymentMethod === "card"
+                        ? "border-amber-800 bg-amber-50/20 shadow-xs"
+                        : "border-editorial-border bg-white hover:bg-stone-50/50"
+                    }`}
+                  >
+                    <CreditCard className={`w-5 h-5 mt-0.5 ${selectedPaymentMethod === "card" ? "text-amber-800" : "text-editorial-muted"}`} />
+                    <div className="flex-1">
+                      <strong className="block text-xs font-serif font-normal text-editorial-text">
+                        {activeSettings.cardPaymentTitle || "Онлайн-оплата карткою"}
+                      </strong>
+                      <span className="block text-[11px] text-editorial-muted mt-0.5 leading-relaxed font-sans">
+                        {activeSettings.cardPaymentDesc || "Швидкий платіж Visa/Mastercard (LiqPay Sandbox)."}
+                      </span>
+                    </div>
+                  </button>
+                )}
 
 
                 {activeSettings.codEnabled && (
