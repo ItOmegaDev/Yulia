@@ -847,9 +847,9 @@ export default function AdminPanel({ onBackToStore, onSettingsUpdate }: AdminPan
             {activeTab === "firebase" && (
               <div className="bg-white border border-editorial-border p-8 space-y-6 text-xs">
                 <div>
-                  <h3 className="text-lg font-serif text-editorial-text mb-1">Інтеграція з хмарною базою даних Firebase</h3>
+                  <h3 className="text-lg font-serif text-editorial-text mb-1">Інтеграція з хмарною базою даних Firebase Firestore</h3>
                   <p className="text-xs text-editorial-muted leading-relaxed">
-                    Цей застосунок може працювати у двох режимах: автономно (локально у вашому браузері за допомогою <code className="bg-stone-100 px-1 py-0.5 font-mono text-[11px]">LocalStorage</code>) або синхронізуватися з віддаленою базою даних <code className="bg-stone-100 px-1 py-0.5 font-mono text-[11px]">Google Firebase Firestore</code>.
+                    Майстерня «Шовк» підключена напряму до віддаленої хмарної бази даних <code className="bg-[#F5F2EB] px-1.5 py-0.5 font-mono text-[11px] border border-editorial-border">Google Firebase Firestore</code>. Усі товари, замовлення клієнтів та налаштування збережені у хмарі та синхронізуються в режимі реального часу.
                   </p>
                   <p className="text-xs text-editorial-muted leading-relaxed mt-2">
                     Якщо ви хочете запустити цей проєкт на <strong>GitHub Pages</strong>, підключіть Firebase нижче, щоб усі додані товари, замовлення та зміни синхронізувалися на сервері в режимі реального часу!
