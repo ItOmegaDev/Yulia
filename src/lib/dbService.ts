@@ -272,22 +272,27 @@ export async function getProducts(): Promise<Product[]> {
       });
 
       if (list.length === 0) {
-        console.log("Firestore products collection is empty. Seeding initial products online...");
-        for (const prod of DEFAULT_PRODUCTS) {
-          await setDoc(doc(firestoreDb, "products", prod.id), {
-            name: prod.name,
-            description: prod.description,
-            price: Number(prod.price),
-            category: prod.category,
-            image: prod.image,
-            sizes: prod.sizes,
-            materials: prod.materials,
-            craftTime: prod.craftTime,
-            featured: Boolean(prod.featured),
-            rating: Number(prod.rating),
-            reviews: Number(prod.reviews),
-          });
-          list.push(prod);
+        // Only seed on very first setup if site settings document does not exist yet
+        const settingsSnap = await getDoc(doc(firestoreDb, "settings", "site"));
+        if (!settingsSnap.exists()) {
+          console.log("First initialization: Seeding initial products online...");
+          for (const prod of DEFAULT_PRODUCTS) {
+            await setDoc(doc(firestoreDb, "products", prod.id), {
+              name: prod.name,
+              description: prod.description,
+              price: Number(prod.price),
+              category: prod.category,
+              image: prod.image,
+              sizes: prod.sizes,
+              materials: prod.materials,
+              craftTime: prod.craftTime,
+              featured: Boolean(prod.featured),
+              rating: Number(prod.rating),
+              reviews: Number(prod.reviews),
+            });
+            list.push(prod);
+          }
+          await setDoc(doc(firestoreDb, "settings", "site"), DEFAULT_SETTINGS);
         }
       }
 
@@ -297,7 +302,7 @@ export async function getProducts(): Promise<Product[]> {
     }
   }
 
-  return DEFAULT_PRODUCTS;
+  return [];
 }
 
 export async function createProduct(prodData: Omit<Product, "id">): Promise<Product> {
@@ -384,10 +389,14 @@ export async function getOrders(): Promise<Order[]> {
       });
 
       if (list.length === 0) {
-        console.log("Firestore orders collection empty. Seeding initial order online...");
-        for (const ord of DEFAULT_ORDERS) {
-          await setDoc(doc(firestoreDb, "orders", ord.id), ord);
-          list.push(ord);
+        // Only seed on very first setup if site settings document does not exist yet
+        const settingsSnap = await getDoc(doc(firestoreDb, "settings", "site"));
+        if (!settingsSnap.exists()) {
+          console.log("First initialization: Seeding initial order online...");
+          for (const ord of DEFAULT_ORDERS) {
+            await setDoc(doc(firestoreDb, "orders", ord.id), ord);
+            list.push(ord);
+          }
         }
       }
 
@@ -398,7 +407,7 @@ export async function getOrders(): Promise<Order[]> {
     }
   }
 
-  return DEFAULT_ORDERS;
+  return [];
 }
 
 export async function createOrder(orderData: any): Promise<Order> {
@@ -541,6 +550,12 @@ export async function clearAllDatabase(): Promise<boolean> {
       const ordSnap = await getDocs(collection(firestoreDb, "orders"));
       for (const d of ordSnap.docs) {
         await deleteDoc(doc(firestoreDb, "orders", d.id));
+      }
+
+      // Ensure site settings doc exists so getProducts/getOrders know site is initialized and won't auto-reseed
+      const settingsSnap = await getDoc(doc(firestoreDb, "settings", "site"));
+      if (!settingsSnap.exists()) {
+        await setDoc(doc(firestoreDb, "settings", "site"), DEFAULT_SETTINGS);
       }
     } catch (err) {
       console.error("Error clearing Firestore database:", err);
