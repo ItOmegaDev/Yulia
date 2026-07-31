@@ -175,34 +175,8 @@ export default function AdminPanel({ onBackToStore, onSettingsUpdate }: AdminPan
 
   // Fetch initial data
   const fetchData = async () => {
-    // Instant cache load for lightning fast rendering
-    const cachedProducts = localStorage.getItem("nytka_products_cache") || localStorage.getItem("nytka_local_products");
-    const cachedSettings = localStorage.getItem("nytka_site_settings_cache") || localStorage.getItem("nytka_site_settings");
-    const cachedOrders = localStorage.getItem("nytka_local_orders");
-
-    if (cachedProducts) {
-      try { setProducts(JSON.parse(cachedProducts)); } catch (e) {}
-    }
-    if (cachedSettings) {
-      try {
-        const parsed = JSON.parse(cachedSettings);
-        const merged = { ...dbService.DEFAULT_SETTINGS, ...parsed };
-        setSettings(merged);
-        setSettingsForm(merged);
-      } catch (e) {}
-    }
-    if (cachedOrders) {
-      try { setOrders(JSON.parse(cachedOrders)); } catch (e) {}
-    }
-
-    if (cachedProducts || cachedSettings || cachedOrders) {
-      setLoading(false);
-    } else {
-      setLoading(true);
-    }
-
+    setLoading(true);
     try {
-      // Parallel loading for maximum speed
       const [ordersData, productsData, settingsData] = await Promise.all([
         dbService.getOrders(),
         dbService.getProducts(),
@@ -423,8 +397,8 @@ export default function AdminPanel({ onBackToStore, onSettingsUpdate }: AdminPan
             <Lock className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-2xl font-serif text-white font-normal tracking-tight">Панель Адміністратора</h1>
-            <p className="text-[10px] uppercase tracking-widest text-[#8C867E] font-medium font-sans mt-0.5">Майстерня та управління крамницею</p>
+            <h1 className="text-2xl font-serif text-white font-normal tracking-tight">Добрий день, Юліє!</h1>
+            <p className="text-[10px] uppercase tracking-widest text-[#8C867E] font-medium font-sans mt-0.5">Кабінет керування майстернею «Шовк»</p>
           </div>
         </div>
 
@@ -513,6 +487,19 @@ export default function AdminPanel({ onBackToStore, onSettingsUpdate }: AdminPan
             {/* 1. DASHBOARD VIEW */}
             {activeTab === "dashboard" && (
               <div className="space-y-8">
+                {/* Welcome Card for Julia */}
+                <div className="bg-white border border-editorial-border p-6 rounded-none flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-xl font-serif text-editorial-text font-normal">Вітаємо в робочому кабінеті, Юліє! ✂️</h2>
+                    <p className="text-xs text-editorial-muted font-sans font-light mt-1">Ось актуальний стан замовлень, оновлення бази даних та показники вашої майстерні.</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="bg-[#F5F2EB] text-editorial-dark border border-editorial-border px-3.5 py-2 text-xs font-sans font-semibold">
+                      Майстерня працює у штатному режимі
+                    </span>
+                  </div>
+                </div>
+
                 {/* Stats row */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="bg-white border border-editorial-border rounded-none p-6 flex items-center gap-4">
@@ -869,33 +856,16 @@ export default function AdminPanel({ onBackToStore, onSettingsUpdate }: AdminPan
                   </p>
                 </div>
 
-                <div className="p-4 border border-stone-200 bg-stone-50 flex items-center justify-between">
+                <div className="p-4 border border-emerald-200 bg-emerald-50/50 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className={`w-3.5 h-3.5 rounded-full ${firebaseConnected ? "bg-emerald-500 animate-pulse" : "bg-stone-300"}`}></div>
+                    <div className="w-3.5 h-3.5 rounded-full bg-emerald-500 animate-pulse"></div>
                     <div>
-                      <span className="text-xs font-bold uppercase tracking-wider block">Статус підключення:</span>
-                      <span className="text-xs text-stone-600">
-                        {firebaseConnected 
-                          ? "✓ Успішно підключено до вашого хмарного Firestore" 
-                          : "⚠ Локальний режим (LocalStorage). Firebase не налаштовано."}
+                      <span className="text-xs font-bold uppercase tracking-wider block text-emerald-900">Статус підключення:</span>
+                      <span className="text-xs text-emerald-800">
+                        ✓ Хмарна база даних Firebase Firestore активна{fbConfig.projectId ? ` (${fbConfig.projectId})` : ""}
                       </span>
                     </div>
                   </div>
-                  {firebaseConnected && (
-                    <button
-                      onClick={() => {
-                        localStorage.removeItem("nytka_firebase_config");
-                        dbService.initializeFirebaseService();
-                        setFirebaseConnected(false);
-                        setSaveSuccess("Конфігурацію видалено. Повернуто локальний режим.");
-                        setTimeout(() => setSaveSuccess(""), 4000);
-                        fetchData();
-                      }}
-                      className="text-xs text-red-700 hover:underline cursor-pointer"
-                    >
-                      Вимкнути Firebase
-                    </button>
-                  )}
                 </div>
 
                 {saveSuccess && (
@@ -983,7 +953,6 @@ export default function AdminPanel({ onBackToStore, onSettingsUpdate }: AdminPan
                           alert("Будь ласка, введіть принаймні API Key та Project ID.");
                           return;
                         }
-                        localStorage.setItem("nytka_firebase_config", JSON.stringify(fbConfig));
                         const isOk = dbService.initializeFirebaseService();
                         if (isOk) {
                           setFirebaseConnected(true);

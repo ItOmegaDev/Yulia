@@ -27,7 +27,11 @@ export default function ProductDetailsModal({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const isCustom = selectedSize === "Індивідуальний" || selectedSize === "Індивідуальний пошив";
+  const isCustom = 
+    selectedSize.toLowerCase().includes("мірк") || 
+    selectedSize.toLowerCase().includes("індивідуал") ||
+    selectedSize === "За мірками" ||
+    selectedSize === "Індивідуальний";
 
   const handleMeasurementChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;

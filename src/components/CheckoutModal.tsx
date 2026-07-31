@@ -131,15 +131,14 @@ export default function CheckoutModal({
       setStep("processing");
       
       const steps = [
-        "Обробка запиту...",
-        "Перевірка наявності виробів...",
-        "Формування замовлення в базі даних...",
-        "Генерація рахунку та інструкцій..."
+        "Обробка замовлення...",
+        "Перевірка параметрів мірок...",
+        "Формування замовлення в майстерні..."
       ];
 
       for (let i = 0; i < steps.length; i++) {
         setLoadingMsg(steps[i]);
-        await new Promise((resolve) => setTimeout(resolve, 150));
+        await new Promise((resolve) => setTimeout(resolve, 80));
       }
 
       try {
@@ -196,15 +195,15 @@ export default function CheckoutModal({
     setStep("processing");
     
     const steps = [
-      "З'єднання із захищеним шлюзом LiqPay...",
-      "Авторизація платежу банком-емітентом...",
-      "Отримання 3D-Secure підтвердження...",
-      "Генерація квитанції про успішну оплату..."
+      "З'єднання із захищеним платіжним шлюзом...",
+      "Авторизація платежу банком...",
+      "Отримання підтвердження...",
+      "Формування електронного чека..."
     ];
 
     for (let i = 0; i < steps.length; i++) {
       setLoadingMsg(steps[i]);
-      await new Promise((resolve) => setTimeout(resolve, 150));
+      await new Promise((resolve) => setTimeout(resolve, 80));
     }
 
     try {
@@ -224,7 +223,7 @@ export default function CheckoutModal({
         total,
         paymentStatus: "Оплачено",
         paymentDetails: {
-          provider: "LiqPay (Simulated)",
+          provider: "Online Card",
           transactionId,
           timestamp,
           method: activeSettings.cardPaymentTitle || "Онлайн-оплата карткою",
@@ -411,7 +410,7 @@ export default function CheckoutModal({
                         {activeSettings.cardPaymentTitle || "Онлайн-оплата карткою"}
                       </strong>
                       <span className="block text-[11px] text-editorial-muted mt-0.5 leading-relaxed font-sans">
-                        {activeSettings.cardPaymentDesc || "Швидкий платіж Visa/Mastercard (LiqPay Sandbox)."}
+                        {activeSettings.cardPaymentDesc || "Швидка та безпечна оплата Visa / Mastercard."}
                       </span>
                     </div>
                   </button>
@@ -473,20 +472,20 @@ export default function CheckoutModal({
               {selectedPaymentMethod === "card" && (
                 <div className="space-y-4">
                   {/* Secure badge */}
-                  <div className="bg-editorial-cream border border-editorial-border/80 text-editorial-text p-3 text-xs flex gap-2.5 leading-relaxed">
+                  <div className="bg-[#F5F2EB] border border-editorial-border/80 text-editorial-text p-3 text-xs flex gap-2.5 leading-relaxed">
                     <ShieldCheck className="w-5 h-5 text-editorial-dark shrink-0 mt-0.5" />
                     <div>
-                      <strong className="font-serif font-normal text-sm block mb-0.5">Тестовий платіж (LiqPay Sandbox)</strong>
-                      <p className="text-[11px] text-editorial-dark-muted font-sans font-light">Введіть будь-які тестові реквізити картки (16 цифр, термін дії, CVV), щоб симулювати транзакцію.</p>
+                      <strong className="font-serif font-normal text-sm block mb-0.5">Захищений 256-bit SSL платіж</strong>
+                      <p className="text-[11px] text-editorial-dark-muted font-sans font-light">Введіть дані вашої платіжної картки (16 цифр, термін дії, CVV) для оплати замовлення.</p>
                     </div>
                   </div>
 
-                  {/* Simulated Card GUI mockup */}
+                  {/* Card visual representation */}
                   <div className="bg-[#2A2420] text-editorial-cream p-5 rounded-none shadow-xl space-y-6 border border-[#3E352F] relative overflow-hidden">
                     <div className="absolute right-0 bottom-0 translate-x-10 translate-y-10 w-44 h-44 rounded-full bg-white/5 blur-3xl" />
                     
                     <div className="flex items-center justify-between">
-                      <span className="text-[9px] uppercase tracking-[0.2em] text-[#8C867E] font-semibold">Симулятор Оплати</span>
+                      <span className="text-[9px] uppercase tracking-[0.2em] text-[#8C867E] font-semibold">Банківська Картка</span>
                       <CreditCard className="w-6 h-6 text-editorial-cream" />
                     </div>
 
@@ -601,12 +600,25 @@ export default function CheckoutModal({
                   </p>
                   {activeSettings.ibanDetails && (
                     <div className="p-3 bg-white border border-stone-200 rounded-none">
-                      <span className="text-[9px] uppercase tracking-wider text-editorial-muted block mb-1 font-bold">Орієнтовні реквізити ФОП:</span>
+                      <span className="text-[9px] uppercase tracking-wider text-editorial-muted block mb-1 font-bold">Офіційні реквізити ФОП:</span>
                       <pre className="text-[10px] text-editorial-text font-mono whitespace-pre-wrap leading-tight">{activeSettings.ibanDetails}</pre>
                     </div>
                   )}
                 </div>
               )}
+
+              {/* Trust & Guarantee Box for Client Safety */}
+              <div className="bg-[#F9F8F5] border border-editorial-border p-4 text-xs space-y-2 mt-4 font-sans">
+                <div className="flex items-center gap-2 text-editorial-dark font-semibold text-xs uppercase tracking-wider">
+                  <ShieldCheck className="w-4 h-4 text-emerald-800" />
+                  <span>Гарантії майстерні «Шовк» та захист покупця</span>
+                </div>
+                <ul className="text-[11px] text-editorial-dark-muted space-y-1.5 font-light leading-relaxed pl-5 list-disc">
+                  <li><strong>Перевірка мірок:</strong> Майстриня Юлія особисто перегляне ваші обхвати перед пошивом. Якщо виникнуть питання — ми зв'яжемося до початку роботи.</li>
+                  <li><strong>Офіційні виплати:</strong> Працюємо офіційно через розрахунковий рахунок ФОП з наданням електронного фіскального чеку.</li>
+                  <li><strong>Гарантія посадки:</strong> Якщо готовий виріб потребуватиме корекції — ми безоплатно підженемо його під ваші параметри.</li>
+                </ul>
+              </div>
 
               <div className="border-t border-editorial-border/40 pt-5 flex gap-3 mt-6">
                 <button

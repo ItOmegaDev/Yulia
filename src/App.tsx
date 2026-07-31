@@ -25,46 +25,13 @@ import * as dbService from "./lib/dbService";
 
 export default function App() {
   const [view, setView] = useState<"shop" | "admin">("shop");
-  const [products, setProducts] = useState<Product[]>(() => {
-    const cached = localStorage.getItem("nytka_products_cache");
-    if (cached) {
-      try {
-        return JSON.parse(cached);
-      } catch (e) {}
-    }
-    const local = localStorage.getItem("nytka_local_products");
-    if (local) {
-      try {
-        return JSON.parse(local);
-      } catch (e) {}
-    }
-    return [];
-  });
+  const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [loading, setLoading] = useState<boolean>(() => {
-    const cached = localStorage.getItem("nytka_products_cache") || localStorage.getItem("nytka_local_products");
-    if (cached) {
-      try {
-        const parsed = JSON.parse(cached);
-        if (parsed && parsed.length > 0) {
-          return false;
-        }
-      } catch (e) {}
-    }
-    return true;
-  });
+  const [loading, setLoading] = useState<boolean>(true);
   const [categoryFilter, setCategoryFilter] = useState<string>("всі");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [sortBy, setSortBy] = useState<string>("default");
-  const [settings, setSettings] = useState<SiteSettings | null>(() => {
-    const cached = localStorage.getItem("nytka_site_settings_cache") || localStorage.getItem("nytka_site_settings");
-    if (cached) {
-      try {
-        return JSON.parse(cached);
-      } catch (e) {}
-    }
-    return null;
-  });
+  const [settings, setSettings] = useState<SiteSettings | null>(null);
 
   // Admin authorization state
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
@@ -78,29 +45,12 @@ export default function App() {
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
   const [successOrder, setSuccessOrder] = useState<any>(null);
+  const [legalModal, setLegalModal] = useState<"offer" | "guarantee" | "privacy" | null>(null);
 
-  // Fetch products and settings from dbService on load
+  // Fetch products and settings directly from Firebase
   const loadProducts = async () => {
-    // Instant cache load for lightning-fast (0ms) visual rendering
-    const cachedProducts = localStorage.getItem("nytka_products_cache") || localStorage.getItem("nytka_local_products");
-    const cachedSettings = localStorage.getItem("nytka_site_settings_cache") || localStorage.getItem("nytka_site_settings");
-    
-    if (cachedProducts) {
-      try { setProducts(JSON.parse(cachedProducts)); } catch (e) {}
-    }
-    if (cachedSettings) {
-      try {
-        const parsed = JSON.parse(cachedSettings);
-        setSettings({ ...dbService.DEFAULT_SETTINGS, ...parsed });
-      } catch (e) {}
-    }
-    
-    if (cachedProducts || cachedSettings) {
-      setLoading(false);
-    }
-
+    setLoading(true);
     try {
-      // Parallelized data fetching
       const [data, siteSettings] = await Promise.all([
         dbService.getProducts(),
         dbService.getSettings()
@@ -108,7 +58,7 @@ export default function App() {
       setProducts(data);
       setSettings(siteSettings);
     } catch (err) {
-      console.error("Error fetching data:", err);
+      console.error("Error fetching data from Firebase:", err);
     } finally {
       setLoading(false);
     }
@@ -116,15 +66,6 @@ export default function App() {
 
   useEffect(() => {
     loadProducts();
-    // Load cart from localStorage if present
-    const savedCart = localStorage.getItem("nytka_cart");
-    if (savedCart) {
-      try {
-        setCart(JSON.parse(savedCart));
-      } catch (err) {
-        console.error("Error loading cart", err);
-      }
-    }
   }, []);
 
   // Router listener to detect /admin, #admin or ?admin=true
@@ -144,12 +85,10 @@ export default function App() {
 
     window.addEventListener("hashchange", handleUrlChange);
     window.addEventListener("popstate", handleUrlChange);
-    const interval = setInterval(handleUrlChange, 1000); // Check fallback for custom navigation
 
     return () => {
       window.removeEventListener("hashchange", handleUrlChange);
       window.removeEventListener("popstate", handleUrlChange);
-      clearInterval(interval);
     };
   }, []);
 
@@ -164,10 +103,8 @@ export default function App() {
     }
   };
 
-  // Save cart to localStorage whenever it changes
   const saveCart = (newCart: CartItem[]) => {
     setCart(newCart);
-    localStorage.setItem("nytka_cart", JSON.stringify(newCart));
   };
 
   // Add item to cart
@@ -342,20 +279,20 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-stone-50 text-stone-900 font-sans flex flex-col selection:bg-amber-100 selection:text-amber-900">
+    <div className="min-h-screen bg-editorial-bg text-editorial-text font-sans flex flex-col selection:bg-editorial-cream selection:text-editorial-dark">
       
       {/* 2. NAVIGATION HEADER */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-100 px-6 py-4 flex items-center justify-between shadow-xs">
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-editorial-border px-6 py-4 flex items-center justify-between shadow-xs">
         {/* Brand logo */}
-        <div className="flex items-center gap-2.5">
-          <div className="bg-amber-800 text-white p-2 rounded-xl shadow-xs">
+        <div className="flex items-center gap-3 cursor-pointer" onClick={() => toggleView("shop")}>
+          <div className="bg-editorial-dark text-[#F5F2EB] p-2 border border-[#3E352F] rounded-none shadow-xs">
             <Scissors className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-base font-extrabold tracking-tight text-stone-900">
+            <h1 className="text-lg font-serif font-normal tracking-tight text-editorial-text leading-none">
               Шовк
             </h1>
-            <p className="text-[10px] text-amber-800 font-semibold uppercase tracking-widest">
+            <p className="text-[10px] text-editorial-muted font-sans uppercase tracking-[0.2em] font-medium mt-1">
               Швейна Майстерня
             </p>
           </div>
@@ -363,13 +300,13 @@ export default function App() {
 
         {/* Search bar inside header (desktop) */}
         <div className="hidden md:relative md:block w-96">
-          <Search className="absolute top-1/2 left-3.5 -translate-y-1/2 text-stone-400 w-4 h-4" />
+          <Search className="absolute top-1/2 left-3.5 -translate-y-1/2 text-editorial-muted w-4 h-4" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Пошук виробів чи тканин (напр. льон, шопер)..."
-            className="w-full bg-stone-50 border border-stone-200 focus:border-amber-500 focus:ring-amber-100 rounded-xl pl-10 pr-4 py-2 text-xs outline-none transition-all focus:ring-2"
+            placeholder="Пошук виробів чи тканин (напр. льон, сорочка)..."
+            className="w-full bg-[#F5F2EB] border border-editorial-border focus:border-editorial-dark rounded-none pl-10 pr-4 py-2 text-xs outline-none transition-all font-sans"
           />
         </div>
 
@@ -377,15 +314,15 @@ export default function App() {
         <div className="flex items-center gap-3.5">
           {/* Cart Icon with count badge */}
           <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
             onClick={() => setIsCartOpen(true)}
-            className="relative bg-stone-900 hover:bg-stone-800 text-white p-2.5 px-4 rounded-xl flex items-center gap-2 transition-all shadow-sm hover:shadow-md cursor-pointer text-xs font-bold"
+            className="relative bg-editorial-dark hover:bg-stone-800 text-white p-2.5 px-4 rounded-none flex items-center gap-2 transition-all shadow-xs cursor-pointer text-xs font-semibold uppercase tracking-wider font-sans border border-[#3E352F]"
           >
-            <ShoppingBag className="w-4 h-4" />
+            <ShoppingBag className="w-4 h-4 text-editorial-cream" />
             <span className="hidden sm:inline">Кошик</span>
             {cartCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 bg-amber-600 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-white shadow-xs animate-bounce">
+              <span className="bg-editorial-cream text-editorial-dark text-[10px] font-bold px-2 py-0.5 rounded-none border border-editorial-border">
                 {cartCount}
               </span>
             )}
@@ -413,76 +350,70 @@ export default function App() {
       )}
 
       {/* 4. HERO SECTION */}
-      <section className="bg-radial from-stone-900 via-stone-900 to-stone-950 text-white py-16 px-6 relative overflow-hidden flex flex-col items-center justify-center text-center">
-        {/* Ambient shapes */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl translate-x-20 -translate-y-20 pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-amber-800/15 rounded-full blur-3xl -translate-x-20 translate-y-20 pointer-events-none" />
-
-        <div className="max-w-2xl relative space-y-5">
-          <span className="bg-amber-800/80 text-amber-200 text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-widest inline-flex items-center gap-1.5 border border-amber-700/50">
-            <Award className="w-3.5 h-3.5 text-amber-400" />
+      <section className="bg-editorial-dark text-[#F5F2EB] py-16 px-6 relative overflow-hidden flex flex-col items-center justify-center text-center border-b border-[#3E352F]">
+        <div className="max-w-3xl relative space-y-6">
+          <span className="bg-[#3E352F] text-editorial-cream text-[9px] font-semibold px-3.5 py-1.5 rounded-none uppercase tracking-[0.2em] inline-flex items-center gap-2 border border-stone-700">
+            <Award className="w-3.5 h-3.5 text-editorial-cream" />
             100% Ручна Робота & Екологічні матеріали
           </span>
           
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight leading-tight">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif font-normal tracking-tight leading-tight text-white">
             {settings?.heroTitle || "Одяг та Текстиль за Вашими Індивідуальними Мірками"}
           </h2>
           
-          <p className="text-stone-300 text-xs sm:text-sm leading-relaxed max-w-lg mx-auto font-light">
+          <p className="text-editorial-muted text-xs sm:text-sm leading-relaxed max-w-xl mx-auto font-sans font-light">
             {settings?.heroDescription || "Ми не віримо в стандартизовану індустрію. Кожен шов, кожен сантиметр тканини створюється швачкою вручну, адаптуючи крій під особливості вашої фігури."}
           </p>
 
-          <div className="flex flex-wrap items-center justify-center gap-6 pt-3 text-stone-400 text-xs">
-            <span className="flex items-center gap-1.5">
-              <Check className="w-4 h-4 text-amber-500" /> Натуральний льон та бавовна
+          <div className="flex flex-wrap items-center justify-center gap-6 pt-2 text-[#D4CFC7] text-xs font-sans">
+            <span className="flex items-center gap-2">
+              <Check className="w-4 h-4 text-editorial-cream" /> Натуральний льон та бавовна
             </span>
-            <span className="flex items-center gap-1.5">
-              <Check className="w-4 h-4 text-amber-500" /> Точна посадка на будь-який зріст
+            <span className="flex items-center gap-2">
+              <Check className="w-4 h-4 text-editorial-cream" /> Точна посадка на будь-який зріст
             </span>
-            <span className="flex items-center gap-1.5">
-              <Check className="w-4 h-4 text-amber-500" /> Швидка доставка по Україні
+            <span className="flex items-center gap-2">
+              <Check className="w-4 h-4 text-editorial-cream" /> Швидка доставка по Україні
             </span>
           </div>
         </div>
       </section>
 
       {/* 5. CATEGORY TABS & SEARCH */}
-      <section className="bg-white border-b border-stone-200 py-4 px-6 sticky top-[72px] z-30 shadow-2xs">
+      <section className="bg-white border-b border-editorial-border py-4 px-6 sticky top-[69px] z-30 shadow-2xs">
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-4 items-center justify-between">
           
           {/* Tabs */}
-          <div className="flex gap-2 w-full lg:w-auto overflow-x-auto shrink-0 pb-1 lg:pb-0 scrollbar-none">
+          <div className="flex gap-2 w-full lg:w-auto overflow-x-auto shrink-0 pb-1 lg:pb-0 scrollbar-none font-sans">
             {[
               { id: "всі", label: "Всі вироби" },
               { id: "одяг", label: "Одяг ручної роботи" },
               { id: "текстиль", label: "Домашній текстиль" },
               { id: "аксесуари", label: "Аксесуари та декор" },
             ].map((tab) => (
-              <motion.button
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
+              <button
                 key={tab.id}
                 onClick={() => setCategoryFilter(tab.id)}
-                className={`px-4 py-2 rounded-xl text-xs font-bold tracking-wide transition-all cursor-pointer whitespace-nowrap uppercase ${
+                className={`px-4 py-2.5 text-xs font-semibold tracking-wider transition-all cursor-pointer whitespace-nowrap uppercase rounded-none ${
                   categoryFilter === tab.id
-                    ? "bg-amber-900 text-white shadow-xs"
-                    : "bg-stone-50 text-stone-600 border border-stone-200/60 hover:bg-stone-100"
+                    ? "bg-editorial-dark text-white shadow-none"
+                    : "bg-white text-editorial-text border border-editorial-border hover:border-editorial-dark"
                 }`}
               >
                 {tab.label}
-              </motion.button>
+              </button>
             ))}
           </div>
 
           {/* Right column: Sorting & Mobile Search */}
-          <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto font-sans">
             {/* Sorting Dropdown */}
             <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
-              <span className="text-[10px] uppercase tracking-wider font-bold text-stone-400 whitespace-nowrap">Сортування:</span>
+              <span className="text-[10px] uppercase tracking-wider font-semibold text-editorial-muted whitespace-nowrap">Сортування:</span>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="bg-stone-50 border border-stone-200 focus:border-amber-500 focus:ring-amber-100 rounded-xl px-3.5 py-2 text-xs outline-none transition-all focus:ring-2 font-bold text-stone-700 cursor-pointer w-full sm:w-52"
+                className="bg-white border border-editorial-border focus:border-editorial-dark rounded-none px-3.5 py-2 text-xs outline-none transition-all font-semibold text-editorial-text cursor-pointer w-full sm:w-52"
               >
                 <option value="default">За замовчуванням</option>
                 <option value="popularity">★ За популярністю</option>
@@ -493,13 +424,13 @@ export default function App() {
 
             {/* Search bar (mobile-friendly) */}
             <div className="relative w-full md:hidden">
-              <Search className="absolute top-1/2 left-3 -translate-y-1/2 text-stone-400 w-4 h-4" />
+              <Search className="absolute top-1/2 left-3 -translate-y-1/2 text-editorial-muted w-4 h-4" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Пошук виробу чи матеріалу..."
-                className="w-full bg-stone-50 border border-stone-200 focus:border-amber-500 focus:ring-amber-100 rounded-xl pl-9 pr-4 py-2 text-xs outline-none transition-all focus:ring-2"
+                className="w-full bg-[#F5F2EB] border border-editorial-border focus:border-editorial-dark rounded-none pl-9 pr-4 py-2 text-xs outline-none transition-all"
               />
             </div>
           </div>
@@ -547,34 +478,34 @@ export default function App() {
       </main>
 
       {/* 7. WHY CHOOSE US BENEFITS */}
-      <section className="bg-stone-900 text-stone-100 py-16 px-6 border-t border-stone-800">
+      <section className="bg-editorial-dark text-editorial-cream py-16 px-6 border-t border-[#3E352F]">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-10">
           <div className="space-y-3">
-            <div className="bg-amber-800/50 w-10 h-10 rounded-xl flex items-center justify-center text-amber-400 border border-amber-700/30">
+            <div className="bg-[#3E352F] w-10 h-10 border border-stone-700 flex items-center justify-center text-editorial-cream">
               <Scissors className="w-5 h-5" />
             </div>
-            <h4 className="font-bold text-base">{settings?.benefit1Title || "Індивідуальне коригування лекал"}</h4>
-            <p className="text-stone-400 text-xs leading-relaxed">
+            <h4 className="font-serif font-normal text-lg">{settings?.benefit1Title || "Індивідуальне коригування лекал"}</h4>
+            <p className="text-editorial-muted text-xs leading-relaxed font-sans font-light">
               {settings?.benefit1Desc || "Не хвилюйтеся про стандартні розмірні сітки. Наші кравці безкоштовно перерахують лекала виробу під ваш зріст та пропорції для ідеальної посадки."}
             </p>
           </div>
 
           <div className="space-y-3">
-            <div className="bg-amber-800/50 w-10 h-10 rounded-xl flex items-center justify-center text-amber-400 border border-amber-700/30">
+            <div className="bg-[#3E352F] w-10 h-10 border border-stone-700 flex items-center justify-center text-editorial-cream">
               <Sparkles className="w-5 h-5" />
             </div>
-            <h4 className="font-bold text-base">{settings?.benefit2Title || "Екологічність та якість льону"}</h4>
-            <p className="text-stone-400 text-xs leading-relaxed">
+            <h4 className="font-serif font-normal text-lg">{settings?.benefit2Title || "Екологічність та якість льону"}</h4>
+            <p className="text-editorial-muted text-xs leading-relaxed font-sans font-light">
               {settings?.benefit2Desc || "Ми використовуємо лише преміальний сертифікований льон та органічну бавовну. Тканини проходять процедуру пом'якшення, не сідають при пранні."}
             </p>
           </div>
 
           <div className="space-y-3">
-            <div className="bg-amber-800/50 w-10 h-10 rounded-xl flex items-center justify-center text-amber-400 border border-amber-700/30">
+            <div className="bg-[#3E352F] w-10 h-10 border border-stone-700 flex items-center justify-center text-editorial-cream">
               <PhoneCall className="w-5 h-5" />
             </div>
-            <h4 className="font-bold text-base">{settings?.benefit3Title || "Супровід кравчині"}</h4>
-            <p className="text-stone-400 text-xs leading-relaxed">
+            <h4 className="font-serif font-normal text-lg">{settings?.benefit3Title || "Супровід кравчині"}</h4>
+            <p className="text-editorial-muted text-xs leading-relaxed font-sans font-light">
               {settings?.benefit3Desc || "Після оформлення замовлення наш майстер-швець особисто контролює етапи підготовки та зв'яжеться з вами за потреби для підтвердження обхватів."}
             </p>
           </div>
@@ -582,22 +513,38 @@ export default function App() {
       </section>
 
       {/* 8. FOOTER */}
-      <footer className="bg-stone-950 text-stone-400 text-xs py-8 px-6 border-t border-stone-900 text-center space-y-3.5">
-        <div className="flex justify-center items-center gap-1.5 text-stone-200">
-          <Scissors className="w-4 h-4 text-amber-500" />
-          <span className="font-bold uppercase tracking-wider text-[11px]">Шовк • Майстерня ручної роботи</span>
+      <footer className="bg-[#1C1815] text-editorial-muted text-xs py-10 px-6 border-t border-[#3E352F] text-center space-y-4 font-sans">
+        <div className="flex justify-center items-center gap-2 text-editorial-cream">
+          <Scissors className="w-4 h-4 text-editorial-cream" />
+          <span className="font-serif font-normal text-sm uppercase tracking-wider">Шовк • Майстерня ручної роботи</span>
         </div>
-        <p className="max-w-md mx-auto text-stone-500">
+        <p className="max-w-md mx-auto text-editorial-muted font-light text-xs leading-relaxed">
           {settings?.footerText || "Україна, м. Київ • Екологічний пошив одягу та предметів побуту за вашими власними мірками."}
         </p>
-        <div className="flex flex-col sm:flex-row justify-center items-center gap-2 sm:gap-4 text-stone-600 text-[10px]">
-          <span>© {new Date().getFullYear()} Шовк. Усі права захищені. Симулятор оплати LiqPay Sandbox.</span>
+
+        {/* Legal & Trust Links */}
+        <div className="flex flex-wrap justify-center items-center gap-3 text-editorial-muted text-[11px] pt-1">
+          <button onClick={() => setLegalModal("offer")} className="hover:text-editorial-cream transition-colors underline cursor-pointer">
+            Публічна оферта
+          </button>
+          <span>•</span>
+          <button onClick={() => setLegalModal("guarantee")} className="hover:text-editorial-cream transition-colors underline cursor-pointer">
+            Гарантія та повернення
+          </button>
+          <span>•</span>
+          <button onClick={() => setLegalModal("privacy")} className="hover:text-editorial-cream transition-colors underline cursor-pointer">
+            Конфіденційність
+          </button>
+        </div>
+
+        <div className="flex flex-col sm:flex-row justify-center items-center gap-2 sm:gap-4 text-editorial-muted text-[10px] pt-2 border-t border-white/5 max-w-xl mx-auto">
+          <span>© {new Date().getFullYear()} Шовк. Усі права захищені.</span>
           <span className="hidden sm:inline">•</span>
           <button
             onClick={() => toggleView("admin")}
-            className="text-stone-500 hover:text-amber-500 transition-colors cursor-pointer underline"
+            className="text-editorial-cream hover:underline transition-colors cursor-pointer font-medium"
           >
-            Вхід для майстра
+            Кабінет майстра Юлії
           </button>
         </div>
       </footer>
@@ -631,6 +578,63 @@ export default function App() {
           onOrderSuccess={handleOrderSuccess}
           settings={settings}
         />
+      )}
+
+      {/* Legal Information Modal */}
+      {legalModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-editorial-border w-full max-w-2xl max-h-[85vh] flex flex-col p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-editorial-border pb-3">
+              <h3 className="font-serif text-lg text-editorial-text font-normal">
+                {legalModal === "offer" && "Публічна оферта та умови продажу"}
+                {legalModal === "guarantee" && "Гарантія якості, примірка та повернення"}
+                {legalModal === "privacy" && "Політика конфіденційності та захисту даних"}
+              </h3>
+              <button
+                onClick={() => setLegalModal(null)}
+                className="p-1 hover:bg-stone-100 rounded-none text-editorial-muted hover:text-editorial-text cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-4 text-xs font-sans text-editorial-dark-muted leading-relaxed pr-2">
+              {legalModal === "offer" && (
+                <>
+                  <p><strong>1. Загальні положення:</strong> Майстерня «Шовк» здійснює пошив текстильних виробів та одягу на замовлення покупця. Усі вироби виготовляються з натуральних екологічних матеріалів.</p>
+                  <p><strong>2. Оформлення замовлення:</strong> Замовлення вважається прийнятим у роботу після підтвердження параметрів та мірок покупця майстринею Юлією.</p>
+                  <p><strong>3. Розрахунки:</strong> Оплата здійснюється офіційно через банківську картку (SSL-захист), на розрахунковий рахунок IBAN ФОП або накладеним платежем у відділенні Нової Пошти.</p>
+                  <p><strong>4. Доставка:</strong> Доставка по Україні здійснюється оператором «Нова Пошта». Терміни виготовлення вказуються для кожного виробу індивідуально (зазвичай 3-5 робочих днів).</p>
+                </>
+              )}
+
+              {legalModal === "guarantee" && (
+                <>
+                  <p><strong>1. Безкоштовне коригування:</strong> Якщо виріб, пошитий за індивідуальними мірками, потребуватиме посадки — наша майстерня виконує повторне безоплатне коригування.</p>
+                  <p><strong>2. Огляд при отриманні:</strong> При виборі накладеного платежу покупець має право оглянути виріб та приміряти його у відділенні перевізника до оплати.</p>
+                  <p><strong>3. Повернення та обмін:</strong> Стандартні вироби підлягають обміну/поверненню протягом 14 днів відповідно до Закону України «Про захист прав споживачів» за умови збереження товарного вигляду.</p>
+                </>
+              )}
+
+              {legalModal === "privacy" && (
+                <>
+                  <p><strong>1. Збір персональних даних:</strong> Персональні дані покупця (ім'я, телефон, адреса доставки, індивідуальні мірки) використовуються виключно для пошиву та доставки замовлення.</p>
+                  <p><strong>2. Безпека:</strong> Дані покупця не передаються третім особам. Усі платіжні транзакції захищені сучасними банківськими стандартами шифрування 256-bit SSL.</p>
+                  <p><strong>3. Фіскалізація:</strong> Кожне замовлення супроводжується фіскальним чеком згідно з вимогами законодавства України.</p>
+                </>
+              )}
+            </div>
+
+            <div className="border-t border-editorial-border pt-3 flex justify-end">
+              <button
+                onClick={() => setLegalModal(null)}
+                className="bg-editorial-dark text-white px-5 py-2 text-xs uppercase tracking-wider font-semibold cursor-pointer"
+              >
+                Зрозуміло
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
