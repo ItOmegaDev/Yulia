@@ -189,12 +189,6 @@ export default function App() {
     if (sortBy === "price-desc") {
       return b.price - a.price;
     }
-    if (sortBy === "popularity") {
-      if (b.rating !== a.rating) {
-        return b.rating - a.rating;
-      }
-      return b.reviews - a.reviews;
-    }
     return 0; // default (from database)
   });
 
@@ -424,7 +418,6 @@ export default function App() {
                 className="bg-white border border-editorial-border focus:border-editorial-dark rounded-none px-3.5 py-2 text-xs outline-none transition-all font-semibold text-editorial-text cursor-pointer w-full sm:w-52"
               >
                 <option value="default">За замовчуванням</option>
-                <option value="popularity">★ За популярністю</option>
                 <option value="price-asc">₴ Ціна: від низької до високої</option>
                 <option value="price-desc">₴ Ціна: від високої до низької</option>
               </select>
