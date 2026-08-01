@@ -1044,7 +1044,7 @@ export default function AdminPanel({ onBackToStore, onSettingsUpdate }: AdminPan
                           value={settingsForm.heroDescription}
                           onChange={(e) => setSettingsForm({ ...settingsForm, heroDescription: e.target.value })}
                           className="w-full bg-stone-50 border border-editorial-border rounded-none px-3.5 py-2.5 text-xs outline-none transition-all focus:border-editorial-dark focus:bg-white"
-                          placeholder="Ми не віримо в стандартизовану індустрію. Кожен шов, кожен сантиметр тканини створюється швачкою вручну..."
+                          placeholder="Наші майстри не вірять в стандартизовану індустрію. Кожен шов, кожен сантиметр тканини створюється швачкою вручну..."
                         />
                       </div>
                     </div>

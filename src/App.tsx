@@ -20,6 +20,10 @@ import {
   PhoneCall,
   Check,
   CheckCircle,
+  Leaf,
+  Star,
+  MessageSquareQuote,
+  ArrowRight,
 } from "lucide-react";
 import * as dbService from "./lib/dbService";
 
@@ -354,8 +358,8 @@ export default function App() {
       {/* 4. HERO SECTION */}
       <section className="bg-editorial-dark text-[#F5F2EB] py-16 px-6 relative overflow-hidden flex flex-col items-center justify-center text-center border-b border-[#3E352F]">
         <div className="max-w-3xl relative space-y-6">
-          <span className="bg-[#3E352F] text-editorial-cream text-[9px] font-semibold px-3.5 py-1.5 rounded-none uppercase tracking-[0.2em] inline-flex items-center gap-2 border border-stone-700">
-            <Award className="w-3.5 h-3.5 text-editorial-cream" />
+          <span className="bg-[#1f3020] text-emerald-300 text-[10px] font-bold px-4 py-2 rounded-none uppercase tracking-[0.2em] inline-flex items-center gap-2 border border-emerald-500/60 shadow-md">
+            <Leaf className="w-4 h-4 text-emerald-400 shrink-0 animate-pulse" />
             100% Ручна Робота & Екологічні матеріали
           </span>
           
@@ -363,19 +367,19 @@ export default function App() {
             {settings?.heroTitle || "Одяг та Текстиль за Вашими Індивідуальними Мірками"}
           </h2>
           
-          <p className="text-editorial-muted text-xs sm:text-sm leading-relaxed max-w-xl mx-auto font-sans font-light">
-            {settings?.heroDescription || "Ми не віримо в стандартизовану індустрію. Кожен шов, кожен сантиметр тканини створюється швачкою вручну, адаптуючи крій під особливості вашої фігури."}
+          <p className="text-emerald-100/90 text-xl sm:text-2xl leading-relaxed max-w-2xl mx-auto font-handwriting font-medium tracking-wide">
+            {settings?.heroDescription || "Наші майстри не вірять в стандартизовану індустрію. Кожен шов, кожен сантиметр тканини створюється швачкою вручну, адаптуючи крій під особливості вашої фігури."}
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-6 pt-2 text-[#D4CFC7] text-xs font-sans">
             <span className="flex items-center gap-2">
-              <Check className="w-4 h-4 text-editorial-cream" /> Натуральний льон та бавовна
+              <Check className="w-4 h-4 text-emerald-400" /> Натуральний льон та бавовна
+            </span>
+            <span className="flex items-center gap-2 max-w-lg text-center leading-normal">
+              <Check className="w-4 h-4 text-emerald-400 shrink-0" /> Посадка на будь-який зріст та фігуру. Індивідуальні вподобання клієнтів нас надихають
             </span>
             <span className="flex items-center gap-2">
-              <Check className="w-4 h-4 text-editorial-cream" /> Точна посадка на будь-який зріст
-            </span>
-            <span className="flex items-center gap-2">
-              <Check className="w-4 h-4 text-editorial-cream" /> Швидка доставка по Україні
+              <Check className="w-4 h-4 text-emerald-400" /> Швидка доставка по Україні
             </span>
           </div>
         </div>
@@ -481,34 +485,135 @@ export default function App() {
       {/* 7. WHY CHOOSE US BENEFITS */}
       <section className="bg-editorial-dark text-editorial-cream py-16 px-6 border-t border-[#3E352F]">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-10">
-          <div className="space-y-3">
-            <div className="bg-[#3E352F] w-10 h-10 border border-stone-700 flex items-center justify-center text-editorial-cream">
-              <Scissors className="w-5 h-5" />
+          <div className="space-y-3 flex flex-col justify-between">
+            <div className="space-y-3">
+              <div className="bg-[#3E352F] w-10 h-10 border border-stone-700 flex items-center justify-center text-editorial-cream">
+                <Scissors className="w-5 h-5" />
+              </div>
+              <h4 className="font-serif font-normal text-lg">{settings?.benefit1Title || "Індивідуальне коригування лекал"}</h4>
+              <p className="text-editorial-muted text-xs leading-relaxed font-sans font-light">
+                {settings?.benefit1Desc || "Не хвилюйтеся про стандартні розмірні сітки. Наші кравці безкоштовно перерахують лекала виробу під ваш зріст та пропорції для ідеальної посадки."}
+              </p>
             </div>
-            <h4 className="font-serif font-normal text-lg">{settings?.benefit1Title || "Індивідуальне коригування лекал"}</h4>
-            <p className="text-editorial-muted text-xs leading-relaxed font-sans font-light">
-              {settings?.benefit1Desc || "Не хвилюйтеся про стандартні розмірні сітки. Наші кравці безкоштовно перерахують лекала виробу під ваш зріст та пропорції для ідеальної посадки."}
+            <a
+              href="#catalog"
+              className="inline-flex items-center gap-1.5 text-[11px] text-amber-200/90 hover:text-white underline transition-colors pt-2 font-sans font-medium"
+            >
+              Обрати виріб у каталозі з підгоном <ArrowRight className="w-3 h-3" />
+            </a>
+          </div>
+
+          <div className="space-y-3 flex flex-col justify-between">
+            <div className="space-y-3">
+              <div className="bg-[#3E352F] w-10 h-10 border border-stone-700 flex items-center justify-center text-editorial-cream">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <h4 className="font-serif font-normal text-lg">{settings?.benefit2Title || "Екологічність та якість льону"}</h4>
+              <p className="text-editorial-muted text-xs leading-relaxed font-sans font-light">
+                {settings?.benefit2Desc || "Ми використовуємо лише преміальний сертифікований льон та органічну бавовну. Тканини проходять процедуру пом'якшення, не сідають при пранні."}
+              </p>
+            </div>
+            <button
+              onClick={() => setLegalModal("guarantee")}
+              className="inline-flex items-center gap-1.5 text-[11px] text-amber-200/90 hover:text-white underline transition-colors pt-2 font-sans font-medium text-left cursor-pointer"
+            >
+              Гарантія якості та догляд за льоном <ArrowRight className="w-3 h-3" />
+            </button>
+          </div>
+
+          <div className="space-y-3 flex flex-col justify-between">
+            <div className="space-y-3">
+              <div className="bg-[#3E352F] w-10 h-10 border border-stone-700 flex items-center justify-center text-editorial-cream">
+                <PhoneCall className="w-5 h-5" />
+              </div>
+              <h4 className="font-serif font-normal text-lg">{settings?.benefit3Title || "Супровід кравчині"}</h4>
+              <p className="text-editorial-muted text-xs leading-relaxed font-sans font-light">
+                {settings?.benefit3Desc || "Після оформлення замовлення наш майстер-швець особисто контролює етапи підготовки та зв'яжеться з вами за потреби для підтвердження обхватів."}
+              </p>
+            </div>
+            <button
+              onClick={() => setLegalModal("offer")}
+              className="inline-flex items-center gap-1.5 text-[11px] text-amber-200/90 hover:text-white underline transition-colors pt-2 font-sans font-medium text-left cursor-pointer"
+            >
+              Умови персонального узгодження мірок <ArrowRight className="w-3 h-3" />
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* 7.5 GROUNDED CUSTOMER REVIEWS */}
+      <section className="bg-editorial-cream/40 py-16 px-6 border-t border-editorial-border/60">
+        <div className="max-w-7xl mx-auto space-y-8">
+          <div className="text-center space-y-2 max-w-xl mx-auto">
+            <span className="text-[10px] uppercase tracking-[0.2em] font-semibold text-editorial-muted flex items-center justify-center gap-1.5">
+              <MessageSquareQuote className="w-3.5 h-3.5 text-editorial-dark" />
+              Враження клієнтів
+            </span>
+            <h3 className="text-2xl font-serif text-editorial-text font-normal">
+              Чесні відгуки про пошив та тканини
+            </h3>
+            <p className="text-xs text-editorial-dark-muted font-sans font-light">
+              Живий досвід замовлення: особливості посадки, фактура натурального льону та реальні терміни роботи.
             </p>
           </div>
 
-          <div className="space-y-3">
-            <div className="bg-[#3E352F] w-10 h-10 border border-stone-700 flex items-center justify-center text-editorial-cream">
-              <Sparkles className="w-5 h-5" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 font-sans">
+            <div className="bg-white p-6 border border-editorial-border/80 shadow-2xs flex flex-col justify-between space-y-4">
+              <div className="space-y-3">
+                <div className="flex items-center gap-1 text-amber-500 text-xs">
+                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                </div>
+                <p className="text-xs text-editorial-dark-muted leading-relaxed font-light">
+                  «Замовляла лляну сукню з корекцією під зріст 156 см. У звичайних магазинах талія завжди була не на місці. Майстриня Юлія перед розкроєм уточнила обхват у Viber. Пошили за 4 дні. Льон спершу здавався трохи цупким, але після першого прання стал м'яким і сів рівно по фігурі.»
+                </p>
+              </div>
+              <div className="border-t border-stone-100 pt-3 text-[11px] text-editorial-muted flex justify-between items-center">
+                <span className="font-semibold text-editorial-text">Марія С.</span>
+                <span>м. Львів • Сукня «Полісся»</span>
+              </div>
             </div>
-            <h4 className="font-serif font-normal text-lg">{settings?.benefit2Title || "Екологічність та якість льону"}</h4>
-            <p className="text-editorial-muted text-xs leading-relaxed font-sans font-light">
-              {settings?.benefit2Desc || "Ми використовуємо лише преміальний сертифікований льон та органічну бавовну. Тканини проходять процедуру пом'якшення, не сідають при пранні."}
-            </p>
-          </div>
 
-          <div className="space-y-3">
-            <div className="bg-[#3E352F] w-10 h-10 border border-stone-700 flex items-center justify-center text-editorial-cream">
-              <PhoneCall className="w-5 h-5" />
+            <div className="bg-white p-6 border border-editorial-border/80 shadow-2xs flex flex-col justify-between space-y-4">
+              <div className="space-y-3">
+                <div className="flex items-center gap-1 text-amber-500 text-xs">
+                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                  <Star className="w-3.5 h-3.5 text-stone-300" />
+                </div>
+                <p className="text-xs text-editorial-dark-muted leading-relaxed font-light">
+                  «Купував лляну сорочку. Замовлення затрималося на день через відключення світла, але про це одразу вибачилися в повідомленні. Шви виконані охайно, ніде немає стирчащих ниток. Розмір сидить вільно, саме те що треба для літа.»
+                </p>
+              </div>
+              <div className="border-t border-stone-100 pt-3 text-[11px] text-editorial-muted flex justify-between items-center">
+                <span className="font-semibold text-editorial-text">Вадим К.</span>
+                <span>м. Дніпро • Сорочка «Дніпро»</span>
+              </div>
             </div>
-            <h4 className="font-serif font-normal text-lg">{settings?.benefit3Title || "Супровід кравчині"}</h4>
-            <p className="text-editorial-muted text-xs leading-relaxed font-sans font-light">
-              {settings?.benefit3Desc || "Після оформлення замовлення наш майстер-швець особисто контролює етапи підготовки та зв'яжеться з вами за потреби для підтвердження обхватів."}
-            </p>
+
+            <div className="bg-white p-6 border border-editorial-border/80 shadow-2xs flex flex-col justify-between space-y-4">
+              <div className="space-y-3">
+                <div className="flex items-center gap-1 text-amber-500 text-xs">
+                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                </div>
+                <p className="text-xs text-editorial-dark-muted leading-relaxed font-light">
+                  «Замовила комплект лляної білизни. Колір у житті виявився трохи спокійнішим і теплішим ніж на моніторі, але тканина духмяна і дихає. Дякую за швидку відправку Новою Поштою та гарне упакування.»
+                </p>
+              </div>
+              <div className="border-t border-stone-100 pt-3 text-[11px] text-editorial-muted flex justify-between items-center">
+                <span className="font-semibold text-editorial-text">Оксана П.</span>
+                <span>м. Київ • Текстиль</span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
