@@ -271,31 +271,6 @@ export async function getProducts(): Promise<Product[]> {
         list.push({ id: docSnap.id, ...docSnap.data() } as Product);
       });
 
-      if (list.length === 0) {
-        // Only seed on very first setup if site settings document does not exist yet
-        const settingsSnap = await getDoc(doc(firestoreDb, "settings", "site"));
-        if (!settingsSnap.exists()) {
-          console.log("First initialization: Seeding initial products online...");
-          for (const prod of DEFAULT_PRODUCTS) {
-            await setDoc(doc(firestoreDb, "products", prod.id), {
-              name: prod.name,
-              description: prod.description,
-              price: Number(prod.price),
-              category: prod.category,
-              image: prod.image,
-              sizes: prod.sizes,
-              materials: prod.materials,
-              craftTime: prod.craftTime,
-              featured: Boolean(prod.featured),
-              rating: Number(prod.rating),
-              reviews: Number(prod.reviews),
-            });
-            list.push(prod);
-          }
-          await setDoc(doc(firestoreDb, "settings", "site"), DEFAULT_SETTINGS);
-        }
-      }
-
       return list;
     } catch (err) {
       console.error("Firestore getProducts error:", err);
@@ -387,18 +362,6 @@ export async function getOrders(): Promise<Order[]> {
       querySnapshot.forEach((docSnap) => {
         list.push({ id: docSnap.id, ...docSnap.data() } as Order);
       });
-
-      if (list.length === 0) {
-        // Only seed on very first setup if site settings document does not exist yet
-        const settingsSnap = await getDoc(doc(firestoreDb, "settings", "site"));
-        if (!settingsSnap.exists()) {
-          console.log("First initialization: Seeding initial order online...");
-          for (const ord of DEFAULT_ORDERS) {
-            await setDoc(doc(firestoreDb, "orders", ord.id), ord);
-            list.push(ord);
-          }
-        }
-      }
 
       list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       return list;

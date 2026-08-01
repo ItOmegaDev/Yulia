@@ -65,6 +65,14 @@ export default function App() {
   };
 
   useEffect(() => {
+    if (view === "admin") {
+      document.title = "Кабінет майстра Юлії | Майстерня «Шовк»";
+    } else {
+      document.title = "Шовк — Майстерня індивідуального пошиву одягу та текстилю";
+    }
+  }, [view]);
+
+  useEffect(() => {
     loadProducts();
   }, []);
 
