@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { Product, CartItem, SiteSettings } from "./types";
 import ProductCard from "./components/ProductCard";
 import ProductDetailsModal from "./components/ProductDetailsModal";
@@ -176,8 +176,28 @@ export default function App() {
 
   // Filter products by category and search
   const filteredProducts = products.filter((product) => {
-    const matchesCategory =
-      categoryFilter === "всі" || product.category.toLowerCase() === categoryFilter.toLowerCase();
+    const pCat = (product.category || "").toLowerCase().trim();
+    const filter = categoryFilter.toLowerCase().trim();
+
+    let matchesCategory = true;
+    if (filter !== "всі") {
+      if (filter === "одяг") {
+        matchesCategory = pCat.includes("одяг") || pCat.includes("сукн") || pCat.includes("штани") || pCat.includes("сороч") || pCat.includes("жилет");
+      } else if (filter === "предмети побуту") {
+        matchesCategory = pCat.includes("побут") || pCat.includes("фартух") || pCat.includes("серветк");
+      } else if (filter === "постіль") {
+        matchesCategory = pCat.includes("постіль") || pCat.includes("білизн") || pCat.includes("спальн") || pCat.includes("наволоч");
+      } else if (filter === "кухня") {
+        matchesCategory = pCat.includes("кухн") || pCat.includes("фартух") || pCat.includes("рушник") || pCat.includes("прихват");
+      } else if (filter === "аксесуари") {
+        matchesCategory = pCat.includes("аксесуар") || pCat.includes("дрібнич") || pCat.includes("хустк") || pCat.includes("сумк") || pCat.includes("пасок");
+      } else if (filter === "декор") {
+        matchesCategory = pCat.includes("декор") || pCat.includes("штор") || pCat.includes("подушк") || pCat.includes("гардин");
+      } else {
+        matchesCategory = pCat.includes(filter);
+      }
+    }
+
     const matchesSearch =
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -357,11 +377,21 @@ export default function App() {
 
       {/* 4. HERO SECTION */}
       <section className="bg-editorial-dark text-[#F5F2EB] py-16 px-6 relative overflow-hidden flex flex-col items-center justify-center text-center border-b border-[#3E352F]">
-        <div className="max-w-3xl relative space-y-6">
-          <span className="bg-[#1f3020] text-emerald-300 text-[10px] font-bold px-4 py-2 rounded-none uppercase tracking-[0.2em] inline-flex items-center gap-2 border border-emerald-500/60 shadow-md">
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="max-w-3xl relative space-y-6"
+        >
+          <motion.span
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.1, duration: 0.4 }}
+            className="bg-[#1f3020] text-emerald-300 text-[10px] font-bold px-4 py-2 rounded-none uppercase tracking-[0.2em] inline-flex items-center gap-2 border border-emerald-500/60 shadow-md"
+          >
             <Leaf className="w-4 h-4 text-emerald-400 shrink-0 animate-pulse" />
             100% Ручна Робота & Екологічні матеріали
-          </span>
+          </motion.span>
           
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif font-normal tracking-tight leading-tight text-white">
             {settings?.heroTitle || "Одяг та Текстиль за Вашими Індивідуальними Мірками"}
@@ -382,7 +412,7 @@ export default function App() {
               <Check className="w-4 h-4 text-emerald-400" /> Швидка доставка по Україні
             </span>
           </div>
-        </div>
+        </motion.div>
       </section>
 
       {/* 5. CATEGORY TABS & SEARCH */}
@@ -394,20 +424,32 @@ export default function App() {
             {[
               { id: "всі", label: "Всі вироби" },
               { id: "одяг", label: "Одяг ручної роботи" },
-              { id: "текстиль", label: "Домашній текстиль" },
-              { id: "аксесуари", label: "Аксесуари та декор" },
+              { id: "предмети побуту", label: "Предмети побуту" },
+              { id: "постіль", label: "Постіль та спальня" },
+              { id: "кухня", label: "Кухонний текстиль" },
+              { id: "аксесуари", label: "Аксесуари" },
+              { id: "декор", label: "Штори та декор" },
             ].map((tab) => (
-              <button
+              <motion.button
                 key={tab.id}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.97 }}
                 onClick={() => setCategoryFilter(tab.id)}
-                className={`px-4 py-2.5 text-xs font-semibold tracking-wider transition-all cursor-pointer whitespace-nowrap uppercase rounded-none ${
+                className={`px-4 py-2.5 text-xs font-semibold tracking-wider transition-all cursor-pointer whitespace-nowrap uppercase rounded-none relative ${
                   categoryFilter === tab.id
-                    ? "bg-editorial-dark text-white shadow-none"
+                    ? "bg-editorial-dark text-white shadow-xs font-bold"
                     : "bg-white text-editorial-text border border-editorial-border hover:border-editorial-dark"
                 }`}
               >
                 {tab.label}
-              </button>
+                {categoryFilter === tab.id && (
+                  <motion.div
+                    layoutId="activeCategoryTab"
+                    className="absolute inset-0 bg-editorial-dark -z-10"
+                    transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                  />
+                )}
+              </motion.button>
             ))}
           </div>
 
@@ -462,21 +504,27 @@ export default function App() {
             </div>
 
             {sortedProducts.length === 0 ? (
-              <div className="bg-white border border-stone-200 rounded-3xl p-16 text-center text-stone-400">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.97 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-white border border-stone-200 rounded-none p-16 text-center text-stone-400"
+              >
                 <ShoppingBag className="w-12 h-12 text-stone-300 mx-auto mb-3" />
                 <p className="font-semibold text-stone-600">Наразі немає виробів у цій категорії</p>
                 <p className="text-xs text-stone-400 mt-1">Будь ласка, оберіть іншу категорію або змініть критерії пошуку.</p>
-              </div>
+              </motion.div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {sortedProducts.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    onViewDetails={(prod) => setSelectedProduct(prod)}
-                  />
-                ))}
-              </div>
+              <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <AnimatePresence mode="popLayout">
+                  {sortedProducts.map((product) => (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      onViewDetails={(prod) => setSelectedProduct(prod)}
+                    />
+                  ))}
+                </AnimatePresence>
+              </motion.div>
             )}
           </>
         )}
@@ -485,7 +533,11 @@ export default function App() {
       {/* 7. WHY CHOOSE US BENEFITS */}
       <section className="bg-editorial-dark text-editorial-cream py-16 px-6 border-t border-[#3E352F]">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-10">
-          <div className="space-y-3 flex flex-col justify-between">
+          <motion.div
+            whileHover={{ y: -3 }}
+            transition={{ duration: 0.2 }}
+            className="space-y-3 flex flex-col justify-between p-4 border border-stone-800/60 hover:border-stone-700 bg-[#25201c]/40 transition-colors"
+          >
             <div className="space-y-3">
               <div className="bg-[#3E352F] w-10 h-10 border border-stone-700 flex items-center justify-center text-editorial-cream">
                 <Scissors className="w-5 h-5" />
@@ -501,9 +553,13 @@ export default function App() {
             >
               Обрати виріб у каталозі з підгоном <ArrowRight className="w-3 h-3" />
             </a>
-          </div>
+          </motion.div>
 
-          <div className="space-y-3 flex flex-col justify-between">
+          <motion.div
+            whileHover={{ y: -3 }}
+            transition={{ duration: 0.2 }}
+            className="space-y-3 flex flex-col justify-between p-4 border border-stone-800/60 hover:border-stone-700 bg-[#25201c]/40 transition-colors"
+          >
             <div className="space-y-3">
               <div className="bg-[#3E352F] w-10 h-10 border border-stone-700 flex items-center justify-center text-editorial-cream">
                 <Sparkles className="w-5 h-5" />
@@ -519,9 +575,13 @@ export default function App() {
             >
               Гарантія якості та догляд за льоном <ArrowRight className="w-3 h-3" />
             </button>
-          </div>
+          </motion.div>
 
-          <div className="space-y-3 flex flex-col justify-between">
+          <motion.div
+            whileHover={{ y: -3 }}
+            transition={{ duration: 0.2 }}
+            className="space-y-3 flex flex-col justify-between p-4 border border-stone-800/60 hover:border-stone-700 bg-[#25201c]/40 transition-colors"
+          >
             <div className="space-y-3">
               <div className="bg-[#3E352F] w-10 h-10 border border-stone-700 flex items-center justify-center text-editorial-cream">
                 <PhoneCall className="w-5 h-5" />
@@ -537,7 +597,7 @@ export default function App() {
             >
               Умови персонального узгодження мірок <ArrowRight className="w-3 h-3" />
             </button>
-          </div>
+          </motion.div>
         </div>
       </section>
 

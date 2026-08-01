@@ -1,4 +1,5 @@
 import React from "react";
+import { motion, AnimatePresence } from "motion/react";
 import { CartItem } from "../types";
 import { X, Trash2, Plus, Minus, Scissors, ShoppingBag } from "lucide-react";
 
@@ -24,16 +25,28 @@ export default function CartDrawer({
   const total = cartItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden">
-      {/* Backdrop */}
-      <div
-        onClick={onClose}
-        className="absolute inset-0 bg-editorial-dark/45 backdrop-blur-xs transition-opacity"
-      />
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 overflow-hidden">
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={onClose}
+            className="absolute inset-0 bg-editorial-dark/45 backdrop-blur-xs"
+          />
 
-      <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
-        <div className="w-screen max-w-md transform bg-editorial-bg shadow-2xl border-l border-editorial-border flex flex-col h-full animate-slide-in">
-          {/* Header */}
+          <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 26, stiffness: 240 }}
+              className="w-screen max-w-md bg-editorial-bg shadow-2xl border-l border-editorial-border flex flex-col h-full"
+            >
+              {/* Header */}
           <div className="px-6 py-6 bg-white border-b border-editorial-border flex items-center justify-between">
             <h2 className="text-xl font-serif text-editorial-text font-normal flex items-center gap-2">
               <ShoppingBag className="w-4 h-4 text-editorial-dark" />
@@ -174,20 +187,24 @@ export default function CartDrawer({
                 </div>
               </div>
 
-              <button
+              <motion.button
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={onCheckout}
-                className="w-full bg-editorial-dark hover:bg-editorial-dark/95 transition-all text-white text-xs uppercase tracking-[0.2em] font-bold py-4 rounded-none flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full bg-editorial-dark hover:bg-stone-800 transition-all text-white text-xs uppercase tracking-[0.2em] font-bold py-4 rounded-none flex items-center justify-center gap-2 cursor-pointer shadow-xs"
               >
                 Оформити замовлення
-              </button>
+              </motion.button>
 
               <p className="text-[10px] text-center text-editorial-muted font-sans uppercase tracking-wider">
                 Кожен виріб шиється вручну з особливою турботою.
               </p>
             </div>
           )}
+            </motion.div>
+          </div>
         </div>
-      </div>
-    </div>
+      )}
+    </AnimatePresence>
   );
 }

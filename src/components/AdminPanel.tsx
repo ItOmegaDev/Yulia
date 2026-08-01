@@ -336,6 +336,27 @@ export default function AdminPanel({ onBackToStore, onSettingsUpdate }: AdminPan
   const pendingOrdersCount = orders.filter((o) => o.status === "Новий" || o.status === "В роботі").length;
   const completedOrdersCount = orders.filter((o) => o.status === "Завершено").length;
 
+  // Calculate total ordered quantity per product
+  const getProductOrderedCount = (productId: string, productName: string) => {
+    let count = 0;
+    orders.forEach((o) => {
+      o.items?.forEach((item) => {
+        if (
+          item.id === productId ||
+          (item.name && item.name.trim().toLowerCase() === productName.trim().toLowerCase())
+        ) {
+          count += item.quantity || 1;
+        }
+      });
+    });
+    return count;
+  };
+
+  const totalOrderedUnits = products.reduce(
+    (sum, p) => sum + getProductOrderedCount(p.id, p.name),
+    0
+  );
+
   // Chart data from orders
   const getChartData = () => {
     // Group sales by day of month (or simple timeline list)
@@ -776,69 +797,109 @@ export default function AdminPanel({ onBackToStore, onSettingsUpdate }: AdminPan
             {/* 3. CATALOG MANAGER VIEW */}
             {activeTab === "catalog" && (
               <div className="space-y-6">
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
                     <h3 className="font-serif text-editorial-text text-base font-normal">Керування каталогом виробів</h3>
-                    <p className="text-xs text-editorial-muted font-sans font-light">Додавання, редагування та видалення виробів у магазині</p>
+                    <p className="text-xs text-editorial-muted font-sans font-light">Додавання, редагування, вибір категорій та аналітика замовлень</p>
                   </div>
                   <button
                     onClick={() => openProductModal(null)}
-                    className="bg-editorial-dark hover:bg-editorial-dark/95 text-white text-[10px] uppercase tracking-widest font-bold px-5 py-3 rounded-none transition-colors flex items-center gap-1.5 cursor-pointer font-sans"
+                    className="bg-editorial-dark hover:bg-editorial-dark/95 text-white text-[10px] uppercase tracking-widest font-bold px-5 py-3 rounded-none transition-colors flex items-center gap-1.5 cursor-pointer font-sans shadow-xs"
                   >
                     <Plus className="w-4 h-4" />
                     Додати новий виріб
                   </button>
                 </div>
 
-                {/* Catalog Table / Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {products.map((product) => (
-                    <div
-                      key={product.id}
-                      className="bg-white border border-editorial-border rounded-none p-4 flex gap-4 shadow-none items-center justify-between"
-                    >
-                      <div className="flex gap-4 items-center min-w-0">
-                        <img
-                          src={product.image}
-                          alt={product.name}
-                          className="w-16 h-16 rounded-none object-cover shrink-0 bg-[#F5F2EB] border border-editorial-border/60"
-                          referrerPolicy="no-referrer"
-                        />
-                        <div className="min-w-0">
-                          <span className="text-[9px] bg-editorial-cream text-editorial-dark px-2.5 py-0.5 border border-editorial-border/40 rounded-none uppercase font-semibold font-sans tracking-wider">
-                            {product.category}
-                          </span>
-                          <h4 className="font-serif text-editorial-text text-sm mt-1.5 truncate pr-4">
-                            {product.name}
-                          </h4>
-                          <span className="text-editorial-text font-serif font-bold text-xs">
-                            {product.price.toLocaleString("uk-UA")} ₴
-                          </span>
-                          <span className="text-[10px] text-editorial-muted font-sans font-light ml-2">
-                            ({product.craftTime})
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Action buttons */}
-                      <div className="flex items-center gap-1.5 shrink-0 font-sans">
-                        <button
-                          onClick={() => openProductModal(product)}
-                          title="Редагувати виріб"
-                          className="p-2 bg-editorial-cream border border-editorial-border/40 text-editorial-text rounded-none hover:bg-[#F5F2EB] transition-colors cursor-pointer"
-                        >
-                          <Edit3 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteProduct(product.id)}
-                          title="Видалити з бази"
-                          className="p-2 bg-red-50 border border-red-200 text-red-700 rounded-none hover:bg-white transition-colors cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                {/* Catalog summary metrics */}
+                <div className="bg-white border border-editorial-border p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-[#1F2C1F] text-emerald-300 border border-emerald-500/30">
+                      <ShoppingBag className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-editorial-muted tracking-wider block">Аналітика замовлених моделей</span>
+                      <div className="flex flex-wrap items-center gap-3 text-xs font-serif text-editorial-text mt-0.5">
+                        <span>Усіх моделей у каталозі: <strong>{products.length}</strong></span>
+                        <span className="text-stone-300">|</span>
+                        <span>Всього виготовлено/замовлено клієнтами: <strong className="text-emerald-700 font-sans font-bold">{totalOrderedUnits} шт.</strong></span>
                       </div>
                     </div>
-                  ))}
+                  </div>
+                  <div className="text-[11px] text-editorial-muted font-sans font-light italic">
+                    *Лічильник замовлених одиниць оновлюється автоматично при кожному замовленні
+                  </div>
+                </div>
+
+                {/* Catalog Table / Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {products.map((product) => {
+                    const orderedCount = getProductOrderedCount(product.id, product.name);
+                    return (
+                      <div
+                        key={product.id}
+                        className="bg-white border border-editorial-border rounded-none p-4 flex gap-4 shadow-none items-center justify-between hover:border-editorial-dark transition-all"
+                      >
+                        <div className="flex gap-4 items-center min-w-0">
+                          <img
+                            src={product.image}
+                            alt={product.name}
+                            className="w-16 h-16 rounded-none object-cover shrink-0 bg-[#F5F2EB] border border-editorial-border/60"
+                            referrerPolicy="no-referrer"
+                          />
+                          <div className="min-w-0 space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-[9px] bg-editorial-cream text-editorial-dark px-2.5 py-0.5 border border-editorial-border/40 rounded-none uppercase font-semibold font-sans tracking-wider">
+                                {product.category}
+                              </span>
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-none border flex items-center gap-1 font-sans ${
+                                orderedCount > 0
+                                  ? "bg-amber-50 text-amber-900 border-amber-300"
+                                  : "bg-stone-50 text-stone-500 border-stone-200"
+                              }`}>
+                                <ShoppingBag className="w-3 h-3 text-amber-600" />
+                                Замовлено: {orderedCount} шт.
+                              </span>
+                              {orderedCount > 0 && (
+                                <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 border border-emerald-300">
+                                  🔥 Популярне
+                                </span>
+                              )}
+                            </div>
+                            <h4 className="font-serif text-editorial-text text-sm truncate pr-4 font-normal">
+                              {product.name}
+                            </h4>
+                            <div className="flex items-center gap-2">
+                              <span className="text-editorial-text font-serif font-bold text-xs">
+                                {product.price.toLocaleString("uk-UA")} ₴
+                              </span>
+                              <span className="text-[10px] text-editorial-muted font-sans font-light">
+                                ({product.craftTime})
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Action buttons */}
+                        <div className="flex items-center gap-1.5 shrink-0 font-sans">
+                          <button
+                            onClick={() => openProductModal(product)}
+                            title="Редагувати виріб"
+                            className="p-2 bg-editorial-cream border border-editorial-border/40 text-editorial-text rounded-none hover:bg-[#F5F2EB] transition-colors cursor-pointer"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteProduct(product.id)}
+                            title="Видалити з бази"
+                            className="p-2 bg-red-50 border border-red-200 text-red-700 rounded-none hover:bg-white transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -1364,11 +1425,14 @@ export default function AdminPanel({ onBackToStore, onSettingsUpdate }: AdminPan
                   <select
                     value={productForm.category}
                     onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
-                    className="w-full bg-white border border-editorial-border rounded-none px-3.5 py-2.5 text-xs outline-none transition-all focus:border-editorial-dark"
+                    className="w-full bg-white border border-editorial-border rounded-none px-3.5 py-2.5 text-xs outline-none transition-all focus:border-editorial-dark cursor-pointer font-sans"
                   >
-                    <option value="одяг">Одяг</option>
-                    <option value="текстиль">Текстиль</option>
-                    <option value="аксесуари">Аксесуари</option>
+                    <option value="одяг">Одяг ручної роботи</option>
+                    <option value="предмети побуту">Предмети побуту</option>
+                    <option value="постіль">Постіль та спальня</option>
+                    <option value="кухня">Кухонний текстиль</option>
+                    <option value="аксесуари">Аксесуари та дрібниці</option>
+                    <option value="декор">Штори та Декор приміщень</option>
                   </select>
                 </div>
 

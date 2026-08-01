@@ -11,12 +11,19 @@ interface ProductCardProps {
 
 export default function ProductCard({ product, onViewDetails }: ProductCardProps) {
   return (
-    <div className="group bg-white rounded-none overflow-hidden border border-editorial-border hover:border-editorial-dark transition-colors duration-300 flex flex-col h-full">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      whileHover={{ y: -4 }}
+      transition={{ duration: 0.25 }}
+      className="group bg-white rounded-none overflow-hidden border border-editorial-border hover:border-editorial-dark hover:shadow-md transition-all duration-300 flex flex-col h-full"
+    >
       <div className="relative aspect-[4/5] overflow-hidden bg-editorial-cream">
         <img
           src={product.image}
           alt={product.name}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-500 ease-out"
           referrerPolicy="no-referrer"
         />
         
@@ -36,7 +43,7 @@ export default function ProductCard({ product, onViewDetails }: ProductCardProps
       <div className="p-6 flex flex-col flex-1">
         <div className="flex items-center gap-1.5 mb-2">
           <div className="flex text-editorial-dark">
-            <Star className="w-3.5 h-3.5 fill-current" />
+            <Star className="w-3.5 h-3.5 fill-current text-amber-500" />
           </div>
           <span className="text-xs font-medium text-editorial-text font-sans">{product.rating.toFixed(1)}</span>
           <span className="text-[10px] text-editorial-muted font-sans">({product.reviews} відгуків)</span>
@@ -73,6 +80,6 @@ export default function ProductCard({ product, onViewDetails }: ProductCardProps
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
