@@ -376,7 +376,7 @@ export default function App() {
               <Check className="w-4 h-4 text-emerald-400" /> Натуральний льон та бавовна
             </span>
             <span className="flex items-center gap-2 max-w-lg text-center leading-normal">
-              <Check className="w-4 h-4 text-emerald-400 shrink-0" /> Посадка на будь-який зріст та фігуру. Індивідуальні вподобання клієнтів нас надихають
+              <Check className="w-4 h-4 text-emerald-400 shrink-0" /> Посадка на будь-який зріст та фігуру. Індивідуальні вподобання клієнтів, нас надихає
             </span>
             <span className="flex items-center gap-2">
               <Check className="w-4 h-4 text-emerald-400" /> Швидка доставка по Україні
@@ -510,7 +510,7 @@ export default function App() {
               </div>
               <h4 className="font-serif font-normal text-lg">{settings?.benefit2Title || "Екологічність та якість льону"}</h4>
               <p className="text-editorial-muted text-xs leading-relaxed font-sans font-light">
-                {settings?.benefit2Desc || "Ми використовуємо лише преміальний сертифікований льон та органічну бавовну. Тканини проходять процедуру пом'якшення, не сідають при пранні."}
+                {settings?.benefit2Desc || "Наші майстри використовують лише преміальний сертифікований льон та органічну бавовну. Тканини проходять процедуру пом'якшення, не сідають при пранні."}
               </p>
             </div>
             <button
@@ -537,83 +537,6 @@ export default function App() {
             >
               Умови персонального узгодження мірок <ArrowRight className="w-3 h-3" />
             </button>
-          </div>
-        </div>
-      </section>
-
-      {/* 7.5 GROUNDED CUSTOMER REVIEWS */}
-      <section className="bg-editorial-cream/40 py-16 px-6 border-t border-editorial-border/60">
-        <div className="max-w-7xl mx-auto space-y-8">
-          <div className="text-center space-y-2 max-w-xl mx-auto">
-            <span className="text-[10px] uppercase tracking-[0.2em] font-semibold text-editorial-muted flex items-center justify-center gap-1.5">
-              <MessageSquareQuote className="w-3.5 h-3.5 text-editorial-dark" />
-              Враження клієнтів
-            </span>
-            <h3 className="text-2xl font-serif text-editorial-text font-normal">
-              Чесні відгуки про пошив та тканини
-            </h3>
-            <p className="text-xs text-editorial-dark-muted font-sans font-light">
-              Живий досвід замовлення: особливості посадки, фактура натурального льону та реальні терміни роботи.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 font-sans">
-            <div className="bg-white p-6 border border-editorial-border/80 shadow-2xs flex flex-col justify-between space-y-4">
-              <div className="space-y-3">
-                <div className="flex items-center gap-1 text-amber-500 text-xs">
-                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                </div>
-                <p className="text-xs text-editorial-dark-muted leading-relaxed font-light">
-                  «Замовляла лляну сукню з корекцією під зріст 156 см. У звичайних магазинах талія завжди була не на місці. Майстриня Юлія перед розкроєм уточнила обхват у Viber. Пошили за 4 дні. Льон спершу здавався трохи цупким, але після першого прання стал м'яким і сів рівно по фігурі.»
-                </p>
-              </div>
-              <div className="border-t border-stone-100 pt-3 text-[11px] text-editorial-muted flex justify-between items-center">
-                <span className="font-semibold text-editorial-text">Марія С.</span>
-                <span>м. Львів • Сукня «Полісся»</span>
-              </div>
-            </div>
-
-            <div className="bg-white p-6 border border-editorial-border/80 shadow-2xs flex flex-col justify-between space-y-4">
-              <div className="space-y-3">
-                <div className="flex items-center gap-1 text-amber-500 text-xs">
-                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                  <Star className="w-3.5 h-3.5 text-stone-300" />
-                </div>
-                <p className="text-xs text-editorial-dark-muted leading-relaxed font-light">
-                  «Купував лляну сорочку. Замовлення затрималося на день через відключення світла, але про це одразу вибачилися в повідомленні. Шви виконані охайно, ніде немає стирчащих ниток. Розмір сидить вільно, саме те що треба для літа.»
-                </p>
-              </div>
-              <div className="border-t border-stone-100 pt-3 text-[11px] text-editorial-muted flex justify-between items-center">
-                <span className="font-semibold text-editorial-text">Вадим К.</span>
-                <span>м. Дніпро • Сорочка «Дніпро»</span>
-              </div>
-            </div>
-
-            <div className="bg-white p-6 border border-editorial-border/80 shadow-2xs flex flex-col justify-between space-y-4">
-              <div className="space-y-3">
-                <div className="flex items-center gap-1 text-amber-500 text-xs">
-                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                </div>
-                <p className="text-xs text-editorial-dark-muted leading-relaxed font-light">
-                  «Замовила комплект лляної білизни. Колір у житті виявився трохи спокійнішим і теплішим ніж на моніторі, але тканина духмяна і дихає. Дякую за швидку відправку Новою Поштою та гарне упакування.»
-                </p>
-              </div>
-              <div className="border-t border-stone-100 pt-3 text-[11px] text-editorial-muted flex justify-between items-center">
-                <span className="font-semibold text-editorial-text">Оксана П.</span>
-                <span>м. Київ • Текстиль</span>
-              </div>
-            </div>
           </div>
         </div>
       </section>
