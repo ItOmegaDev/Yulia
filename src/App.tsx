@@ -106,7 +106,8 @@ export default function App() {
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (passwordInput === "Yulia2026") {
+    const adminPassword = (import.meta as any).env?.VITE_ADMIN_PASSWORD || "Yulia2026";
+    if (passwordInput === adminPassword) {
       setIsAdminAuthenticated(true);
       sessionStorage.setItem("nytka_admin_auth", "true");
       setPasswordError("");
