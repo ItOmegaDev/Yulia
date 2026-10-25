@@ -1,97 +1,64 @@
-# 🧵 Nytka — Bespoke Eco-Tailoring Platform
+![Yulia banner](assets/banner.png)
 
-A professional full-stack web application designed for automating bespoke, made-to-measure tailoring workflows. This platform connects customers seeking eco-conscious, custom-sized apparel and home goods with tailoring workshops. Featuring a high-contrast editorial design, an advanced custom measurement engine, and a comprehensive real-time admin dashboard.
+# Yulia (Nytka) — Bespoke Tailoring Platform
 
----
+A full-stack web application for bespoke, made-to-measure tailoring. Customers can browse products, choose standard sizes or enter custom measurements, and place orders. The admin panel manages products, orders, analytics and shop settings.
 
-## Technical Stack & Architecture
+![Yulia screenshot](assets/screenshot.png)
 
-- **Frontend**: React 18, Vite, TypeScript, Tailwind CSS, `motion/react` (Framer Motion animations), Lucide Icons, Recharts & D3 (analytics).
-- **Backend & Storage**: Node.js, Express, Firebase Firestore (primary database) with a resilient `localStorage` caching and fallback layer.
-- **Data Synchronization**: Automated seamless seeding and data sync. If Firestore is connected, local offline drafts, products, and order histories are automatically uploaded and synchronized to prevent any data loss.
+## Features
 
----
+### Storefront
+- Product catalog with category filtering and sorting.
+- Custom measurement engine.
+- Checkout with shipping and payment options.
+- Responsive editorial UI.
 
-## Core Features
+### Admin panel
+- Sales and order analytics.
+- Order workflow management.
+- Product and inventory management.
+- Shop settings and payment toggles.
 
-### 🛍️ Client Storefront
-- **Dynamic Catalog**: Category filtering (Apparel, Home Decor, Accessories) and pricing/popularity sorting.
-- **Custom Measurement Engine**: Allows selection of standard sizes (S, M, L, XL) or input of custom dimensions (Bust, Waist, Hips, Height) with instant validation.
-- **Checkout & Order Dispatch**: Integrated shipping options (Nova Poshta, Courier, Pickup) and secure payment methods (IBAN wire transfer, Cash on Delivery) dynamically managed by the admin.
+## Tech stack
 
-### 👑 Admin Management Panel
-- **Analytical Dashboard**: Interactive D3/Recharts graphs illustrating sales revenue, order volumes, average order value, and product performance.
-- **Workflow State Manager**: Real-time order processing pipelines (Pending, Processing, Tailoring, Shipped, Completed) with detailed access to customer-specific measurements.
-- **Inventory & Settings Controller**: Instant catalog updates (creating/editing products, sizing, crafting times) and global shop configuration (switching payment active states, contact info).
+- React 18
+- Vite
+- TypeScript
+- Tailwind CSS
+- Node.js / Express
+- Firebase Firestore
 
----
+## Quick start
 
-## Quick Start
-
-### 1. Installation
 ```bash
 npm install
-```
-
-### 2. Run Development Server
-```bash
 npm run dev
 ```
-Serves the full-stack Vite + Express application at [http://localhost:3000](http://localhost:3000).
 
-### 3. Production Build & Start
+Open `http://localhost:3000`.
+
+Production build:
+
 ```bash
 npm run build
 npm run start
 ```
-Compiles client assets to `/dist` and bundles the Express backend server into `/dist/server.cjs`.
 
----
+## Configuration
 
-# 🧵 Нитка — Платформа екологічного індивідуального пошиву
+Firebase is optional. Configure it through environment variables or a local `firebase-applet-config.json` created from `firebase-applet-config.example.json`. Do not commit real Firebase configuration or service-account files.
 
-Професійна full-stack веб-платформа для автоматизації процесів індивідуального пошиву одягу та предметів побуту. Проєкт розроблено для забезпечення взаємодії між клієнтами та кравецькими майстернями. Поєднує мінімалістичний дизайн у стилі етно-модерн, систему розрахунку індивідуальних мірок та повнофункціональну панель адміністрування.
+## Security notes
 
----
+- Admin and Firebase configuration should stay in local, git-ignored files.
+- Change default admin credentials before deployment.
+- Use Firebase security rules for production data.
 
-## Технологічний стек та архітектура
+## License
 
-- **Frontend**: React 18, Vite, TypeScript, Tailwind CSS, `motion/react` (фізична анімація), Lucide Icons, Recharts & D3 (інтерактивна аналітика).
-- **Backend та Сховище**: Node.js, Express, хмарна БД Firebase Firestore з інтегрованим механізмом резервного копіювання у `localStorage`.
-- **Синхронізація даних**: Автоматичне завантаження та злиття локальних замовлень і товарів у хмару при першому налаштуванні підключення до Firestore, що повністю унеможливлює втрату даних.
+This project is licensed under the [MIT License](LICENSE).
 
----
+## Українською (коротко)
 
-## Основний функціонал
-
-### 🛍️ Клієнтський Магазин
-- **Каталог з фільтрацією**: Згрупований за категоріями (Одяг, Предмети побуту, Аксесуари) та сортуванням за ціною і популярністю.
-- **Конструктор мірок**: Можливість вибору стандартної сітки (S, M, L, XL) або введення точних індивідуальних параметрів (обхват грудей, талії, стегон, зріст).
-- **Оформлення замовлень**: Швидкий вибір доставки (Нова Пошта, Самовивіз, Кур'єр) та доступних методів оплати (IBAN реквізити, Накладений платіж).
-
-### 👑 Панель Управління (Адмін-панель)
-- **Аналітичний Dashboard**: Візуалізація фінансової статистики, середнього чека та динаміки продажів на графіках Recharts/D3.
-- **Контроль замовлень**: Зміна статусів замовлень (Нове, В роботі, Шиється, Надіслано, Виконано) та перегляд точних мірок клієнта для кожного виробу.
-- **Керування контентом та налаштуваннями**: Створення й редагування карток товарів, миттєве ввімкнення/вимкнення методів оплати та редагування контактів майстерні.
-
----
-
-## Швидкий запуск
-
-### 1. Встановлення залежностей
-```bash
-npm install
-```
-
-### 2. Запуск в режимі розробки
-```bash
-npm run dev
-```
-Додаток буде доступний за адресою [http://localhost:3000](http://localhost:3000).
-
-### 3. Збірка та запуск в Production
-```bash
-npm run build
-npm run start
-```
-Клієнтські файли збираються в директорію `/dist`, а Express-сервер компілюється в `/dist/server.cjs`.
+Yulia («Нитка») — full-stack платформа для індивідуального пошиву: каталог, конструктор мірок, оформлення замовлень і адмін-панель з аналітикою, керуванням товарами та налаштуваннями магазину. Запуск: `npm install && npm run dev`.

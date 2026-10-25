@@ -11,7 +11,16 @@ import {
   Firestore,
 } from "firebase/firestore";
 import { Product, Order, SiteSettings } from "../types";
-import firebaseAppletConfig from "../../firebase-applet-config.json";
+let firebaseAppletConfig: any = {};
+try {
+  const globConfig = import.meta.glob("../../firebase-applet-config.json", { eager: true });
+  const matched = Object.values(globConfig)[0] as any;
+  if (matched) {
+    firebaseAppletConfig = matched.default || matched;
+  }
+} catch {
+  firebaseAppletConfig = {};
+}
 
 export interface FirebaseConfig {
   apiKey: string;

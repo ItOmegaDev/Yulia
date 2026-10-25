@@ -8,3 +8,6 @@ coverage/
 .env.*
 !.env.example
 
+
+# Firebase applet config (contains public client identifiers; keep local only)
+firebase-applet-config.json
